@@ -9,6 +9,7 @@ import AlbumDetail from './pages/AlbumDetail';
 import LikedSongs from './pages/LikedSongs';
 import ArtistDetail from './pages/ArtistDetail';
 import ArtistDashboard from './pages/ArtistDashboard';
+import AdminDashboard from './pages/AdminDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import MainLayout from './components/MainLayout';
 import { Toaster } from 'react-hot-toast';
@@ -90,6 +91,16 @@ function App() {
               <ProtectedRoute>
                 <MainLayout>
                   <ArtistDashboard />
+                </MainLayout>
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/dashboard" 
+            element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <AdminDashboard />
                 </MainLayout>
               </ProtectedRoute>
             } 

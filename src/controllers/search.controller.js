@@ -22,6 +22,7 @@ async function globalSearch(req, res) {
         // Execute local searches, Spotify search, and JioSaavn search in parallel
         const [musics, albums, playlists, spotifyResults, saavnSongRes, saavnAlbumRes] = await Promise.all([
             musicModel.find({
+                status: 'approved',
                 $or: [
                     { title: regex },
                     { artist: { $in: matchingArtistIds } }

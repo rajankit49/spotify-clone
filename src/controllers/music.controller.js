@@ -78,7 +78,7 @@ async function createAlbum(req, res) {
 async function getAllMusics(req, res) {
     try {
         const music = await musicModel
-            .find()
+            .find({ status: 'approved' })
             .limit(100)
             .populate("artist", "username email");
 
@@ -238,4 +238,58 @@ async function addMusicToAlbum(req, res) {
     }
 }
 
-module.exports = { createMusic, createAlbum, getAllMusics, getAllAlbums, getAlbumById, addMusicToAlbum }
+async function getPendingMusics(req, res) {
+    try {
+        const music = await musicModel
+            .find({ status: 'pending' })
+            .populate("artist", "username email");
+
+        res.status(200).json({
+            message: "Pending music fetched successfully",
+            musics: music,
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+}
+
+async function approveMusic(req, res) {
+    try {
+        const { musicId } = req.params;
+        const music = await musicModel.findByIdAndUpdate(musicId, { status: 'approved' }, { new: true });
+        if (!music) {
+            return res.status(404).json({ message: "Music not found" });
+        }
+        res.status(200).json({ message: "Music approved successfully", music });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+}
+
+async function rejectMusic(req, res) {
+    try {
+        const { musicId } = req.params;
+        const music = await musicModel.findByIdAndDelete(musicId);
+        if (!music) {
+            return res.status(404).json({ message: "Music not found" });
+        }
+        res.status(200).json({ message: "Music rejected and deleted successfully" });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+}
+
+module.exports = { 
+    createMusic, 
+    createAlbum, 
+    getAllMusics, 
+    getAllAlbums, 
+    getAlbumById, 
+    addMusicToAlbum,
+    getPendingMusics,
+    approveMusic,
+    rejectMusic
+};

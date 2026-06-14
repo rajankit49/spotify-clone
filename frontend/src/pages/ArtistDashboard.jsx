@@ -345,7 +345,14 @@ const ArtistDashboard = () => {
                         <div style={{ flex: 1 }}>
                           <h4 style={{ margin: '0', fontSize: '0.9rem', fontWeight: '600' }}>{song.title}</h4>
                         </div>
-                        <span style={{ fontSize: '0.8rem', color: 'var(--text-subdued)' }}>Uploaded</span>
+                        <span style={{ 
+                          fontSize: '0.8rem', 
+                          color: song.status === 'approved' ? 'var(--spotify-green)' : song.status === 'rejected' ? '#ff4d4d' : '#ffb700',
+                          fontWeight: '700',
+                          textTransform: 'uppercase'
+                        }}>
+                          {song.status || 'PENDING'}
+                        </span>
                       </div>
                     ))}
                   </div>

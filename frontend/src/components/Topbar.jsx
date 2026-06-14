@@ -103,6 +103,15 @@ const Topbar = ({ isScrolled }) => {
             Artist Dashboard
           </button>
         )}
+        {user?.role === 'admin' && (
+          <button 
+            className="logout-btn" 
+            style={{ marginRight: '8px', backgroundColor: '#e2b13c', color: '#000', border: 'none' }} 
+            onClick={() => navigate('/admin/dashboard')}
+          >
+            Admin Panel
+          </button>
+        )}
         <button className="logout-btn" onClick={handleLogout}>Log out</button>
         <div className="profile-icon">
           {user?.username ? user.username.charAt(0).toUpperCase() : <User size={20} />}

@@ -43,4 +43,9 @@ router.get("/", authMiddleware.authUser, musicController.getAllMusics)
 router.get("/albums", authMiddleware.authUser, musicController.getAllAlbums)
 router.get("/albums/:albumId", authMiddleware.authUser, musicController.getAlbumById)
 
+// Admin moderation routes
+router.get("/pending", authMiddleware.authAdmin, musicController.getPendingMusics)
+router.post("/approve/:musicId", authMiddleware.authAdmin, musicController.approveMusic)
+router.post("/reject/:musicId", authMiddleware.authAdmin, musicController.rejectMusic)
+
 module.exports = router;

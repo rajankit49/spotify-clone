@@ -121,7 +121,8 @@ async function seed() {
             title: song.title,
             uri,
             coverImage: song.coverImage,
-            artist: song.artist
+            artist: song.artist,
+            status: 'approved'
         });
     }
 

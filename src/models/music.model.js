@@ -27,6 +27,11 @@ const musicSchema = new mongoose.Schema({
     spotifyId: {
         type: String,
         default: ""
+    },
+    status: {
+        type: String,
+        enum: ['pending', 'approved', 'rejected'],
+        default: 'pending'
     }
 })
 
