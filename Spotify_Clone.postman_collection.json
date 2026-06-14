@@ -1,0 +1,430 @@
+{
+	"info": {
+		"name": "Spotify Clone API",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. Auth",
+			"item": [
+				{
+					"name": "Register",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"testuser\",\n    \"email\": \"test@user.com\",\n    \"password\": \"password123\",\n    \"role\": \"user\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/auth/register",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3000",
+							"path": ["api", "auth", "register"]
+						}
+					}
+				},
+				{
+					"name": "Login",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"test@user.com\",\n    \"password\": \"password123\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/auth/login",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3000",
+							"path": ["api", "auth", "login"]
+						}
+					}
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3000/api/auth/logout",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3000",
+							"path": ["api", "auth", "logout"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "2. Music & Albums",
+			"item": [
+				{
+					"name": "Create Music",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "title",
+									"value": "My New Song",
+									"type": "text"
+								},
+								{
+									"key": "music",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/music/upload",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3000",
+							"path": ["api", "music", "upload"]
+						}
+					}
+				},
+				{
+					"name": "Create Album",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"My Greatest Hits\",\n    \"musics\": []\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/music/album",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3000",
+							"path": ["api", "music", "album"]
+						}
+					}
+				},
+				{
+					"name": "Get All Music",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3000/api/music/",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3000",
+							"path": ["api", "music", ""]
+						}
+					}
+				},
+				{
+					"name": "Get All Albums",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3000/api/music/albums",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3000",
+							"path": ["api", "music", "albums"]
+						}
+					}
+				},
+				{
+					"name": "Get Album by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3000/api/music/get-album/:albumId",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3000",
+							"path": ["api", "music", "get-album", ":albumId"],
+							"variable": [
+								{
+									"key": "albumId",
+									"value": "ENTER_ALBUM_ID_HERE"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Add Music to Album",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3000/api/music/:albumId/add-music/:musicId",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3000",
+							"path": ["api", "music", ":albumId", "add-music", ":musicId"],
+							"variable": [
+								{
+									"key": "albumId",
+									"value": "ENTER_ALBUM_ID_HERE"
+								},
+								{
+									"key": "musicId",
+									"value": "ENTER_MUSIC_ID_HERE"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "3. Playlists",
+			"item": [
+				{
+					"name": "Create Playlist",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Vibes\",\n    \"description\": \"My favorite songs\",\n    \"isPublic\": true\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/playlist/",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3000",
+							"path": ["api", "playlist", ""]
+						}
+					}
+				},
+				{
+					"name": "Get User Playlists",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3000/api/playlist/",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3000",
+							"path": ["api", "playlist", ""]
+						}
+					}
+				},
+				{
+					"name": "Get Playlist by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3000/api/playlist/:playlistId",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3000",
+							"path": ["api", "playlist", ":playlistId"],
+							"variable": [
+								{
+									"key": "playlistId",
+									"value": "ENTER_PLAYLIST_ID_HERE"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Add Music to Playlist",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3000/api/playlist/:playlistId/music/:musicId",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3000",
+							"path": ["api", "playlist", ":playlistId", "music", ":musicId"],
+							"variable": [
+								{
+									"key": "playlistId",
+									"value": "ENTER_PLAYLIST_ID_HERE"
+								},
+								{
+									"key": "musicId",
+									"value": "ENTER_MUSIC_ID_HERE"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Remove Music from Playlist",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3000/api/playlist/:playlistId/music/:musicId",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3000",
+							"path": ["api", "playlist", ":playlistId", "music", ":musicId"],
+							"variable": [
+								{
+									"key": "playlistId",
+									"value": "ENTER_PLAYLIST_ID_HERE"
+								},
+								{
+									"key": "musicId",
+									"value": "ENTER_MUSIC_ID_HERE"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "4. User Actions",
+			"item": [
+				{
+					"name": "Toggle Like Song",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3000/api/user/like/:musicId",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3000",
+							"path": ["api", "user", "like", ":musicId"],
+							"variable": [
+								{
+									"key": "musicId",
+									"value": "ENTER_MUSIC_ID_HERE"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Liked Songs",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3000/api/user/likes",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3000",
+							"path": ["api", "user", "likes"]
+						}
+					}
+				},
+				{
+					"name": "Toggle Follow User",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3000/api/user/follow/:targetUserId",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3000",
+							"path": ["api", "user", "follow", ":targetUserId"],
+							"variable": [
+								{
+									"key": "targetUserId",
+									"value": "ENTER_TARGET_USER_ID_HERE"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Record Play History",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3000/api/user/history/:musicId",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3000",
+							"path": ["api", "user", "history", ":musicId"],
+							"variable": [
+								{
+									"key": "musicId",
+									"value": "ENTER_MUSIC_ID_HERE"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Play History",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3000/api/user/history",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3000",
+							"path": ["api", "user", "history"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "5. Search",
+			"item": [
+				{
+					"name": "Global Search",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3000/api/search?q=hello",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3000",
+							"path": ["api", "search"],
+							"query": [
+								{
+									"key": "q",
+									"value": "hello"
+								}
+							]
+						}
+					}
+				}
+			]
+		}
+	]
+}

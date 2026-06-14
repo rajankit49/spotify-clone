@@ -1,0 +1,106 @@
+/* auth.css - Styling for Login and Signup Pages */
+
+.auth-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  width: 100vw;
+  background: linear-gradient(180deg, rgba(25,25,25,1) 0%, rgba(0,0,0,1) 100%);
+}
+
+.auth-card {
+  background-color: var(--bg-highlight);
+  padding: 48px;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 450px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+}
+
+.auth-logo {
+  font-size: 2rem;
+  font-weight: 800;
+  margin-bottom: 32px;
+  color: var(--text-base);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.auth-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.auth-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.auth-form-group label {
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.auth-input {
+  background-color: var(--bg-base);
+  border: 1px solid var(--text-subdued);
+  color: var(--text-base);
+  padding: 14px;
+  border-radius: 4px;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.auth-input:focus {
+  border-color: var(--text-base);
+}
+
+.auth-error {
+  color: #f15e6c; /* Spotify red */
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.auth-btn {
+  background-color: var(--spotify-green);
+  color: var(--bg-base);
+  border: none;
+  border-radius: 500px;
+  padding: 14px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 16px;
+  transition: transform 0.1s ease, background-color 0.2s ease;
+}
+
+.auth-btn:hover {
+  background-color: var(--spotify-green-hover);
+  transform: scale(1.04);
+}
+
+.auth-link {
+  margin-top: 32px;
+  font-size: 0.875rem;
+  color: var(--text-subdued);
+}
+
+.auth-link a {
+  color: var(--text-base);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.auth-link a:hover {
+  color: var(--spotify-green);
+  text-decoration: underline;
+}
