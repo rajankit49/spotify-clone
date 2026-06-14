@@ -12,7 +12,7 @@ const searchRoutes = require('./routes/search.routes');
 const app=express()
 
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173', // Allow our Vite frontend
+    origin: (process.env.FRONTEND_URL || 'http://localhost:5173').trim(), // Allow our Vite frontend
     credentials: true // Allow cookies to be sent back and forth
 }));
 
