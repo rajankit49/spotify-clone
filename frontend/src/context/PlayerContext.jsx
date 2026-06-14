@@ -147,7 +147,7 @@ export const PlayerProvider = ({ children }) => {
     }
 
     // Connect to websocket server
-    const socket = io('http://localhost:3000');
+    const socket = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000');
     socketRef.current = socket;
 
     socket.on('connect', () => {
