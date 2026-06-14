@@ -4,7 +4,8 @@ const userModel = require('../models/user.model');
 
 async function authArtist(req, res, next) {
     
-    const token = req.cookies.token;
+    const authHeader = req.headers.authorization;
+    const token = req.cookies.token || (authHeader && authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : null);
 
     if(!token){
         return res.status(401).json({ message: "Unauthorized"})
@@ -28,7 +29,8 @@ async function authArtist(req, res, next) {
 }
 
 async function authUser(req,res,next) {
-    const token = req.cookies.token;
+    const authHeader = req.headers.authorization;
+    const token = req.cookies.token || (authHeader && authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : null);
     
     if (!token) {
         return res.status(401).json({ message: "Unauthorized"})

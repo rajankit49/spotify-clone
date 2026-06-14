@@ -27,6 +27,9 @@ export const AuthProvider = ({ children }) => {
       });
       setUser(response.data.user);
       localStorage.setItem('spotify_user', JSON.stringify(response.data.user));
+      if (response.data.token) {
+        localStorage.setItem('spotify_token', response.data.token);
+      }
       return { success: true };
     } catch (error) {
       return { success: false, message: error.response?.data?.message || 'Login failed' };
@@ -43,6 +46,9 @@ export const AuthProvider = ({ children }) => {
       });
       setUser(response.data.user);
       localStorage.setItem('spotify_user', JSON.stringify(response.data.user));
+      if (response.data.token) {
+        localStorage.setItem('spotify_token', response.data.token);
+      }
       return { success: true };
     } catch (error) {
       return { success: false, message: error.response?.data?.message || 'Registration failed' };
@@ -54,6 +60,7 @@ export const AuthProvider = ({ children }) => {
       await api.post('/auth/logout');
       setUser(null);
       localStorage.removeItem('spotify_user');
+      localStorage.removeItem('spotify_token');
     } catch (error) {
       console.error('Logout failed', error);
     }
