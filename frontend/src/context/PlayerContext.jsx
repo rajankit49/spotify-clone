@@ -311,173 +311,7 @@ export const PlayerProvider = ({ children }) => {
   const audioRef = useRef(new Audio());
   const socketRef = useRef(null);
 
-  // Load downloads list on startup
-  useEffect(() => {
-    setDownloadedSongs(getDownloadedSongsMetadata());
-  }, []);
 
-  // Auto-fetch lyrics whenever currentSong changes (handles all song loads: search, library, jam room, etc.)
-  useEffect(() => {
-    if (!currentSong) {
-      setLyrics([]);
-      setAvailableLyrics({ english: null, original: null });
-      return;
-    }
-    
-    setLyrics([{ time: 0, text: "Loading lyrics..." }]);
-    fetchLyricsForSong(currentSong).then(resultMap => {
-      setAvailableLyrics(resultMap);
-      const activeScript = localStorage.getItem('spotify_preferred_script') || 'english';
-      if (activeScript === 'english' && resultMap.english) {
-        setLyrics(resultMap.english);
-      } else if (activeScript === 'original' && resultMap.original) {
-        setLyrics(resultMap.original);
-      } else {
-        setLyrics(resultMap.english || resultMap.original || []);
-      }
-    }).catch(() => {
-      const dummy = generateLyrics(currentSong);
-      setAvailableLyrics({ english: dummy, original: null });
-      setLyrics(dummy);
-    });
-  }, [currentSong]);
-
-  // --- Socket.io Handlers ---
-  useEffect(() => {
-    if (!user) {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-        socketRef.current = null;
-      }
-      return;
-    }
-
-    // Connect to websocket server
-    const socket = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000');
-    socketRef.current = socket;
-
-    socket.on('connect', () => {
-      socket.emit('register', user.id);
-    });
-
-    socket.on('friend_playing', ({ friend, song }) => {
-      setFriendActivities(prev => ({
-        ...prev,
-        [friend._id]: { friend, song, timestamp: Date.now() }
-      }));
-    });
-
-    socket.on('toast_message', ({ message }) => {
-      toast(message, { icon: '🎵' });
-    });
-
-    socket.on('jam_created', (roomState) => {
-      setJamRoom(roomState);
-      toast.success(`Started a Jam! Code: ${roomState.roomCode}`);
-    });
-
-    socket.on('jam_joined', (roomState) => {
-      setJamRoom(roomState);
-      toast.success(`Joined Jam Room: ${roomState.roomCode}`);
-    });
-
-    socket.on('jam_update', (roomState) => {
-      setJamRoom(roomState);
-    });
-
-    socket.on('jam_state_updated', ({ isPlaying: syncIsPlaying, progress: syncProgress, currentSong: syncSong, queue: syncQueue }) => {
-      if (syncQueue) {
-        setQueue(syncQueue);
-      }
-      if (syncSong) {
-        const isDifferentSong = !currentSong || currentSong._id !== syncSong._id;
-        if (isDifferentSong) {
-          setCurrentSong(syncSong);
-          audioRef.current.src = syncSong.uri || syncSong.audioUrl || '';
-          if (syncIsPlaying) {
-            audioRef.current.play().then(() => setIsPlaying(true)).catch(console.error);
-          } else {
-            audioRef.current.pause();
-            setIsPlaying(false);
-          }
-        } else {
-          // Playback play/pause alignment
-          if (syncIsPlaying !== isPlaying) {
-            if (syncIsPlaying) {
-              audioRef.current.play().then(() => setIsPlaying(true)).catch(console.error);
-            } else {
-              audioRef.current.pause();
-              setIsPlaying(false);
-            }
-          }
-        }
-      }
-      if (syncProgress !== undefined && Math.abs(audioRef.current.currentTime - syncProgress) > 2) {
-        audioRef.current.currentTime = syncProgress;
-        setProgress(syncProgress);
-      }
-    });
-
-    socket.on('jam_queue_updated', (updatedQueue) => {
-      setQueue(updatedQueue);
-    });
-
-    socket.on('jam_closed', ({ message }) => {
-      setJamRoom(null);
-      toast.error(message || 'Jam session closed.');
-    });
-
-    socket.on('jam_error', ({ message }) => {
-      toast.error(message);
-    });
-
-    return () => {
-      socket.disconnect();
-      socketRef.current = null;
-    };
-  }, [user, currentSong, isPlaying]);
-
-  // --- Audio Event Listeners ---
-  useEffect(() => {
-    const audio = audioRef.current;
-
-    const handleTimeUpdate = () => {
-      setProgress(audio.currentTime);
-      // If host in Jam, sync progress with server occasionally (every 3s)
-      if (jamRoom && jamRoom.hostId === user?.id && Math.round(audio.currentTime) % 3 === 0) {
-        socketRef.current.emit('jam_state_change', {
-          roomCode: jamRoom.roomCode,
-          progress: audio.currentTime
-        });
-      }
-    };
-
-    const handleLoadedMetadata = () => setDuration(audio.duration);
-
-    const handleEnded = () => {
-      if (repeatMode === 'one') {
-        audio.currentTime = 0;
-        audio.play();
-        return;
-      }
-      skipNext(true); // true = auto-end
-    };
-
-    audio.addEventListener('timeupdate', handleTimeUpdate);
-    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
-    audio.addEventListener('ended', handleEnded);
-
-    return () => {
-      audio.removeEventListener('timeupdate', handleTimeUpdate);
-      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      audio.removeEventListener('ended', handleEnded);
-    };
-  }, [repeatMode, isShuffle, queue, currentIndex, jamRoom, user]);
-
-  // --- Volume ---
-  useEffect(() => {
-    audioRef.current.volume = volume;
-  }, [volume]);
 
 
 
@@ -853,6 +687,174 @@ export const PlayerProvider = ({ children }) => {
       }
     }
   }, [currentSong, togglePlay, skipPrev, skipNext, seek]);
+
+  // --- Load downloads list on startup ---
+  useEffect(() => {
+    setDownloadedSongs(getDownloadedSongsMetadata());
+  }, []);
+
+  // --- Auto-fetch lyrics whenever currentSong changes ---
+  useEffect(() => {
+    if (!currentSong) {
+      setLyrics([]);
+      setAvailableLyrics({ english: null, original: null });
+      return;
+    }
+    
+    setLyrics([{ time: 0, text: "Loading lyrics..." }]);
+    fetchLyricsForSong(currentSong).then(resultMap => {
+      setAvailableLyrics(resultMap);
+      const activeScript = localStorage.getItem('spotify_preferred_script') || 'english';
+      if (activeScript === 'english' && resultMap.english) {
+        setLyrics(resultMap.english);
+      } else if (activeScript === 'original' && resultMap.original) {
+        setLyrics(resultMap.original);
+      } else {
+        setLyrics(resultMap.english || resultMap.original || []);
+      }
+    }).catch(() => {
+      const dummy = generateLyrics(currentSong);
+      setAvailableLyrics({ english: dummy, original: null });
+      setLyrics(dummy);
+    });
+  }, [currentSong]);
+
+  // --- Socket.io Handlers ---
+  useEffect(() => {
+    if (!user) {
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
+      return;
+    }
+
+    // Connect to websocket server
+    const socket = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000');
+    socketRef.current = socket;
+
+    socket.on('connect', () => {
+      socket.emit('register', user.id);
+    });
+
+    socket.on('friend_playing', ({ friend, song }) => {
+      setFriendActivities(prev => ({
+        ...prev,
+        [friend._id]: { friend, song, timestamp: Date.now() }
+      }));
+    });
+
+    socket.on('toast_message', ({ message }) => {
+      toast(message, { icon: '🎵' });
+    });
+
+    socket.on('jam_created', (roomState) => {
+      setJamRoom(roomState);
+      toast.success(`Started a Jam! Code: ${roomState.roomCode}`);
+    });
+
+    socket.on('jam_joined', (roomState) => {
+      setJamRoom(roomState);
+      toast.success(`Joined Jam Room: ${roomState.roomCode}`);
+    });
+
+    socket.on('jam_update', (roomState) => {
+      setJamRoom(roomState);
+    });
+
+    socket.on('jam_state_updated', ({ isPlaying: syncIsPlaying, progress: syncProgress, currentSong: syncSong, queue: syncQueue }) => {
+      if (syncQueue) {
+        setQueue(syncQueue);
+      }
+      if (syncSong) {
+        const isDifferentSong = !currentSong || currentSong._id !== syncSong._id;
+        if (isDifferentSong) {
+          setCurrentSong(syncSong);
+          audioRef.current.src = syncSong.uri || syncSong.audioUrl || '';
+          if (syncIsPlaying) {
+            audioRef.current.play().then(() => setIsPlaying(true)).catch(console.error);
+          } else {
+            audioRef.current.pause();
+            setIsPlaying(false);
+          }
+        } else {
+          // Playback play/pause alignment
+          if (syncIsPlaying !== isPlaying) {
+            if (syncIsPlaying) {
+              audioRef.current.play().then(() => setIsPlaying(true)).catch(console.error);
+            } else {
+              audioRef.current.pause();
+              setIsPlaying(false);
+            }
+          }
+        }
+      }
+      if (syncProgress !== undefined && Math.abs(audioRef.current.currentTime - syncProgress) > 2) {
+        audioRef.current.currentTime = syncProgress;
+        setProgress(syncProgress);
+      }
+    });
+
+    socket.on('jam_queue_updated', (updatedQueue) => {
+      setQueue(updatedQueue);
+    });
+
+    socket.on('jam_closed', ({ message }) => {
+      setJamRoom(null);
+      toast.error(message || 'Jam session closed.');
+    });
+
+    socket.on('jam_error', ({ message }) => {
+      toast.error(message);
+    });
+
+    return () => {
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  }, [user, currentSong, isPlaying]);
+
+  // --- Audio Event Listeners ---
+  useEffect(() => {
+    const audio = audioRef.current;
+
+    const handleTimeUpdate = () => {
+      setProgress(audio.currentTime);
+      // If host in Jam, sync progress with server occasionally (every 3s)
+      if (jamRoom && jamRoom.hostId === user?.id && Math.round(audio.currentTime) % 3 === 0) {
+        socketRef.current.emit('jam_state_change', {
+          roomCode: jamRoom.roomCode,
+          progress: audio.currentTime
+        });
+      }
+    };
+
+    const handleLoadedMetadata = () => setDuration(audio.duration);
+
+    const handleEnded = () => {
+      if (repeatMode === 'one') {
+        audio.currentTime = 0;
+        audio.play();
+        return;
+      }
+      skipNext(true); // true = auto-end
+    };
+
+    audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audio.addEventListener('ended', handleEnded);
+
+    return () => {
+      audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audio.removeEventListener('ended', handleEnded);
+    };
+  }, [repeatMode, isShuffle, queue, currentIndex, jamRoom, user, skipNext]);
+
+  // --- Volume ---
+  useEffect(() => {
+    audioRef.current.volume = volume;
+  }, [volume]);
 
   return (
     <PlayerContext.Provider value={{
