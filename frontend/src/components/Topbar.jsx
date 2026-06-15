@@ -65,16 +65,16 @@ const Topbar = ({ isScrolled }) => {
       </div>
 
       {/* CENTER — Home & Search Controls */}
-      <div className={`topbar-center ${isSearchPage ? 'on-search' : ''}`} style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        gap: '12px', 
-        flex: isMobile && isSearchPage ? '1 1 auto' : '0 1 auto', 
-        justifyContent: 'center', 
-        maxWidth: '480px', 
-        margin: isMobile ? '0 8px' : '0 16px' 
-      }}>
-        {!isMobile && (
+      {!isMobile && (
+        <div className={`topbar-center ${isSearchPage ? 'on-search' : ''}`} style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '12px', 
+          flex: '0 1 auto', 
+          justifyContent: 'center', 
+          maxWidth: '480px', 
+          margin: '0 16px' 
+        }}>
           <button 
             className="nav-btn" 
             onClick={() => navigate('/')} 
@@ -87,9 +87,7 @@ const Topbar = ({ isScrolled }) => {
           >
             <Home size={20} />
           </button>
-        )}
-        
-        {(!isMobile || isSearchPage) && (
+          
           <div style={{
             position: 'relative',
             display: 'flex',
@@ -122,8 +120,8 @@ const Topbar = ({ isScrolled }) => {
               className="topbar-search-input"
             />
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* RIGHT — Profile & Dashboard Controls */}
       <div className="topbar-profile" style={{ flex: '0 0 auto', position: 'relative', zIndex: 999 }}>

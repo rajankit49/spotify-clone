@@ -337,7 +337,7 @@
 @media (max-width: 768px) {
   /* Topbar Mobile Styles */
   .topbar {
-    padding: 12px 16px !important;
+    padding: max(12px, env(safe-area-inset-top)) 16px 12px !important;
   }
   .topbar-nav {
     display: none !important;

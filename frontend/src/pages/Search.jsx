@@ -17,10 +17,31 @@ const Search = () => {
   const [selectedMusicId, setSelectedMusicId] = useState(null);
   const { playQueue } = useContext(PlayerContext);
 
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [localSearchVal, setLocalSearchVal] = useState('');
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   useEffect(() => {
     const qParam = new URLSearchParams(location.search).get('q') || '';
     setQuery(qParam);
   }, [location.search]);
+
+  useEffect(() => {
+    setLocalSearchVal(query);
+  }, [query]);
+
+  const handleLocalSearchChange = (e) => {
+    const val = e.target.value;
+    setLocalSearchVal(val);
+    navigate(`/search?q=${encodeURIComponent(val)}`);
+  };
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(async () => {
@@ -44,7 +65,33 @@ const Search = () => {
 
   return (
     <div className="search-container">
-      {/* Search bar is now globally rendered in the Topbar */}
+      {isMobile && (
+        <div className="mobile-search-header-container" style={{ marginBottom: '24px', marginTop: '8px' }}>
+          <h1 style={{ fontSize: '2rem', fontWeight: '800', marginBottom: '16px', color: '#fff', letterSpacing: '-0.03em' }}>Search</h1>
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', width: '100%' }}>
+            <SearchIcon size={20} style={{ position: 'absolute', left: '16px', color: '#121212', pointerEvents: 'none' }} />
+            <input 
+              type="text" 
+              placeholder="What do you want to play?"
+              value={localSearchVal}
+              onChange={handleLocalSearchChange}
+              style={{
+                width: '100%',
+                backgroundColor: '#ffffff',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '14px 16px 14px 48px',
+                color: '#121212',
+                fontSize: '1rem',
+                fontWeight: '600',
+                outline: 'none',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+              }}
+              className="mobile-search-input"
+            />
+          </div>
+        </div>
+      )}
 
       {loading && <div style={{ color: 'var(--text-subdued)', padding: '16px' }}>Searching...</div>}
 

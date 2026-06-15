@@ -78,6 +78,7 @@ body {
     grid-template-columns: 1fr;
     grid-template-rows: 1fr 80px 60px;
     height: 100vh;
+    height: 100dvh;
     overflow: hidden;
   }
   .sidebar {
