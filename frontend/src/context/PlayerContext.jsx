@@ -62,38 +62,7 @@ const generateLyrics = (song) => {
     }
   }
   
-  const durationSec = song.duration || 180;
-  const decodedTitle = cleanSongTitle(song.title);
-  const decodedArtist = cleanSongTitle(song.artist?.username || 'Unknown Artist');
-  const generated = [
-    { time: 0, text: `🎶 Playing "${decodedTitle}" 🎶` },
-    { time: 5, text: `🎙️ Artist: ${decodedArtist}` },
-    { time: 10, text: "Let the music wash over your soul..." }
-  ];
-  
-  const lines = [
-    "In the rhythm of the night...",
-    "We find the beat that guides us home.",
-    "Feel the warmth of every note,",
-    "Under the starlight, we float.",
-    "Every lyric tells a story,",
-    "In the shadows and the glory.",
-    "Hear the melody start to rise...",
-    "Bringing color to our eyes.",
-    "Lost inside this beautiful sound...",
-    "With my feet lifted off the ground."
-  ];
-  
-  let time = 15;
-  let idx = 0;
-  while (time < durationSec - 10) {
-    generated.push({ time, text: lines[idx % lines.length] });
-    time += 8;
-    idx++;
-  }
-  
-  generated.push({ time: durationSec - 5, text: "🎶 (Outro fading out) 🎶" });
-  return generated;
+  return [];
 };
 
 const fetchLyricsForSong = async (song) => {

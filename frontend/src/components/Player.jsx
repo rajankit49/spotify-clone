@@ -468,7 +468,11 @@ const Player = () => {
             }}
           >
             {lyrics.length === 0 ? (
-              <p style={{ fontSize: '1.5rem', color: 'var(--text-subdued)' }}>No lyrics available for this song.</p>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60%', gap: '16px', color: 'var(--text-subdued)', textAlign: 'center', padding: '0 24px' }}>
+                <span style={{ fontSize: '3rem' }}>🎙️</span>
+                <p style={{ fontSize: '1.5rem', fontWeight: '700', margin: 0 }}>Lyrics not available.</p>
+                <p style={{ fontSize: '0.95rem', opacity: 0.7, margin: 0 }}>We couldn't find lyrics for this song online or locally.</p>
+              </div>
             ) : (
               lyrics.map((line, idx) => {
                 const isActive = idx === activeLyricIndex;
