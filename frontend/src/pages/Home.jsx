@@ -84,31 +84,21 @@ const Home = () => {
       {/* 2x4 Recents Grid */}
       <section style={{ marginBottom: '32px' }}>
         <h2 style={{ fontSize: '1.75rem', fontWeight: '800', marginBottom: '16px', color: '#fff' }}>Good evening</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
+        <div className="recents-grid">
           {recents.map((item, idx) => (
             <div
               key={`recent-${idx}`}
               onClick={() => handleRecentClick(item)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                backgroundColor: 'rgba(255, 255, 255, 0.07)',
-                borderRadius: '6px',
-                overflow: 'hidden',
-                cursor: 'pointer',
-                transition: 'background-color 0.2s ease, transform 0.1s ease',
-                height: '80px',
-                position: 'relative'
-              }}
+              className="recent-item"
               onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.15)'}
               onMouseLeave={e => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.07)'}
             >
               <img
                 src={item.cover}
                 alt=""
-                style={{ width: '80px', height: '80px', objectFit: 'cover', flexShrink: 0 }}
+                className="recent-item-img"
               />
-              <span style={{ fontSize: '0.9rem', fontWeight: '700', color: '#fff', marginLeft: '16px', paddingRight: '16px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+              <span className="recent-item-text">
                 {item.name}
               </span>
             </div>

@@ -12,6 +12,7 @@ import ArtistDashboard from './pages/ArtistDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import MainLayout from './components/MainLayout';
+import Premium from './pages/Premium';
 import { Toaster } from 'react-hot-toast';
 
 function App() {
@@ -101,6 +102,16 @@ function App() {
               <ProtectedRoute>
                 <MainLayout>
                   <AdminDashboard />
+                </MainLayout>
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/premium" 
+            element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <Premium />
                 </MainLayout>
               </ProtectedRoute>
             } 

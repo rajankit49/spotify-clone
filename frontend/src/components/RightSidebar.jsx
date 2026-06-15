@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState } from 'react';
-import { PlayerContext } from '../context/PlayerContext';
+import { PlayerContext, cleanSongTitle } from '../context/PlayerContext';
 import { AuthContext } from '../context/AuthContext';
 import api from '../services/api';
 import { User, Heart } from 'lucide-react';
@@ -151,7 +151,7 @@ const RightSidebar = () => {
           <div style={{ width: '100%', aspectRatio: '1', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 8px 24px rgba(0,0,0,0.5)', flexShrink: 0 }}>
             <img 
               src={getSongCover(currentSong, 300)} 
-              alt={currentSong.title}
+              alt={cleanSongTitle(currentSong.title)}
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             />
           </div>
@@ -160,7 +160,7 @@ const RightSidebar = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
               <h3 style={{ fontSize: '1.25rem', fontWeight: '800', margin: '0 0 4px 0', color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {currentSong.title}
+                {cleanSongTitle(currentSong.title)}
               </h3>
               <span 
                 onClick={handleArtistClick}
@@ -272,7 +272,7 @@ const RightSidebar = () => {
                     {friend.username}
                   </span>
                   <span style={{ fontSize: '0.75rem', color: 'var(--spotify-green)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: '600' }}>
-                    ⚡ {song.title}
+                    ⚡ {cleanSongTitle(song.title)}
                   </span>
                   <span style={{ fontSize: '0.7rem', color: 'var(--text-subdued)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     by {song.artist?.username || 'Unknown Artist'}
@@ -295,7 +295,7 @@ const RightSidebar = () => {
               />
               <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
                 <span style={{ fontSize: '0.875rem', fontWeight: '700', color: 'var(--spotify-green)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {currentSong.title}
+                  {cleanSongTitle(currentSong.title)}
                 </span>
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-subdued)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {currentSong.artist?.username || 'Unknown Artist'}
@@ -351,7 +351,7 @@ const RightSidebar = () => {
                       />
                       <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
                         <span style={{ fontSize: '0.825rem', fontWeight: '600', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {song.title}
+                          {cleanSongTitle(song.title)}
                         </span>
                         <span style={{ fontSize: '0.725rem', color: 'var(--text-subdued)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           {song.artist?.username || 'Unknown Artist'}

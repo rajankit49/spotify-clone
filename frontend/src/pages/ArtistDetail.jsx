@@ -2,7 +2,7 @@ import React, { useEffect, useState, useContext } from 'react';
 import { useParams } from 'react-router-dom';
 import { Play, Pause, Users } from 'lucide-react';
 import api from '../services/api';
-import { PlayerContext } from '../context/PlayerContext';
+import { PlayerContext, cleanSongTitle } from '../context/PlayerContext';
 import { AuthContext } from '../context/AuthContext';
 import { toast } from 'react-hot-toast';
 import '../styles/playlist.css'; // Reuse styles
@@ -209,7 +209,7 @@ const ArtistDetail = () => {
                     </div>
                     <div className="track-info">
                       <span className="track-title" style={{ color: isActive ? 'var(--spotify-green)' : undefined }}>
-                        {song.title}
+                        {cleanSongTitle(song.title)}
                       </span>
                     </div>
                     <span className="track-duration">{formatDuration(song.duration)}</span>

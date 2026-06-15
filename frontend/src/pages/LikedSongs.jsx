@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useContext } from 'react';
 import { Play, Pause, Heart } from 'lucide-react';
 import api from '../services/api';
-import { PlayerContext } from '../context/PlayerContext';
+import { PlayerContext, cleanSongTitle } from '../context/PlayerContext';
 import '../styles/playlist.css';
 
 const LikedSongs = () => {
@@ -132,7 +132,7 @@ const LikedSongs = () => {
                   </div>
                   <div className="track-info">
                     <span className="track-title" style={{ color: isActive ? 'var(--spotify-green)' : undefined }}>
-                      {song.title}
+                      {cleanSongTitle(song.title)}
                     </span>
                     <span className="track-artist-sub">{song.artist?.username || 'Unknown'}</span>
                   </div>

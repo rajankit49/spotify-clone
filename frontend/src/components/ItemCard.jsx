@@ -2,6 +2,17 @@ import React from 'react';
 import { Play, Plus } from 'lucide-react';
 import '../styles/home.css';
 
+const cleanHTML = (str) => {
+  if (!str) return '';
+  return str
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>');
+};
+
 const ItemCard = ({ image, title, subtitle, onClick, onAddClick, showAddButton = false }) => {
   const getCoverImage = () => {
     if (image) return image;
@@ -39,8 +50,8 @@ const ItemCard = ({ image, title, subtitle, onClick, onAddClick, showAddButton =
         </button>
       </div>
       <div className="item-details">
-        <h3 className="item-title">{title}</h3>
-        <p className="item-subtitle">{subtitle}</p>
+        <h3 className="item-title">{cleanHTML(title)}</h3>
+        <p className="item-subtitle">{cleanHTML(subtitle)}</p>
       </div>
     </div>
   );

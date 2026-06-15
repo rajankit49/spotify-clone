@@ -8,6 +8,17 @@ export const PlayerContext = createContext();
 
 const CACHE_NAME = 'spotify-offline-tracks';
 
+export const cleanSongTitle = (title) => {
+  if (!title) return '';
+  return title
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>');
+};
+
 // Synced custom lyrics database
 const customLyricsDb = {
   'kishore': [
@@ -42,8 +53,8 @@ const customLyricsDb = {
 
 // Generate fallback time-synced lyrics
 const generateLyrics = (song) => {
-  if (!song) return [];
-  const titleLower = song.title.toLowerCase();
+  if (!song || !song.title) return [];
+  const titleLower = String(song.title).toLowerCase();
   
   for (const key in customLyricsDb) {
     if (titleLower.includes(key)) {
@@ -52,9 +63,11 @@ const generateLyrics = (song) => {
   }
   
   const durationSec = song.duration || 180;
+  const decodedTitle = cleanSongTitle(song.title);
+  const decodedArtist = cleanSongTitle(song.artist?.username || 'Unknown Artist');
   const generated = [
-    { time: 0, text: `🎶 Playing "${song.title}" 🎶` },
-    { time: 5, text: `🎙️ Artist: ${song.artist?.username || 'Unknown Artist'}` },
+    { time: 0, text: `🎶 Playing "${decodedTitle}" 🎶` },
+    { time: 5, text: `🎙️ Artist: ${decodedArtist}` },
     { time: 10, text: "Let the music wash over your soul..." }
   ];
   
@@ -81,6 +94,184 @@ const generateLyrics = (song) => {
   
   generated.push({ time: durationSec - 5, text: "🎶 (Outro fading out) 🎶" });
   return generated;
+};
+
+const fetchLyricsForSong = async (song) => {
+  if (!song) return { english: [], original: [] };
+
+  const decodedTitle = cleanSongTitle(song.title || '');
+  const decodedArtist = cleanSongTitle(song.artist?.username || '');
+
+  // Strip parentheticals like (From "Movie") or [From "Movie"] for search matching
+  const coreTitle = decodedTitle
+    .replace(/\([^)]*\)/g, '')
+    .replace(/\[[^\]]*\]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const hasNonLatin = (text) => /[^\x00-\x7F]/.test(text);
+
+  // Helper to verify exact title match
+  const isTitleMatch = (titleA, titleB) => {
+    const clean = (t) => {
+      return cleanSongTitle(String(t))
+        .toLowerCase()
+        .replace(/\([^)]*\)/g, '')
+        .replace(/\[[^\]]*\]/g, '')
+        .replace(/[^a-z0-9\s]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    };
+    return clean(titleA) === clean(titleB);
+  };
+
+  // Helper to parse LRC time strings like [02:14.30]
+  const parseLrcText = (lrcText) => {
+    if (!lrcText) return [];
+    const lines = lrcText.split('\n');
+    const parsed = [];
+    const timeRegex = /\[(\d{2}):(\d{2})\.(\d{2,3})\]/;
+    
+    for (const line of lines) {
+      const match = timeRegex.exec(line);
+      if (match) {
+        const min = parseInt(match[1], 10);
+        const sec = parseInt(match[2], 10);
+        const ms = parseInt(match[3], 10);
+        const time = min * 60 + sec + (ms / 100);
+        const text = cleanSongTitle(line.replace(timeRegex, '').trim());
+        if (text) {
+          parsed.push({ time, text });
+        }
+      }
+    }
+    return parsed.sort((a, b) => a.time - b.time);
+  };
+
+  // Helper to distribute plain lyrics evenly over duration
+  const distributePlainLyrics = (plainText, durationSec) => {
+    if (!plainText) return [];
+    const lines = plainText
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 0);
+    
+    if (lines.length === 0) return [];
+    const duration = durationSec || 180;
+    const startTime = 3;
+    const endTime = duration - 10;
+    const interval = (endTime - startTime) / lines.length;
+    
+    const synced = lines.map((text, idx) => ({
+      time: startTime + (idx * interval),
+      text: cleanSongTitle(text)
+    }));
+    
+    synced.unshift({ time: 0, text: `🎶 Playing "${decodedTitle}" 🎶` });
+    synced.push({ time: duration - 5, text: "🎶 (Instrumental / Outro) 🎶" });
+    return synced;
+  };
+
+  const results = { english: null, original: null };
+
+  // --- SOURCE 1: LRCLIB ---
+  try {
+    // Try exact get with decodedTitle first
+    let getUrl = `https://lrclib.net/api/get?track_name=${encodeURIComponent(decodedTitle)}&artist_name=${encodeURIComponent(decodedArtist)}`;
+    let getRes = await fetch(getUrl, {
+      headers: { 'User-Agent': 'SpotifyClone/1.0.0 (https://github.com/rajankit49/spotify-clone)' }
+    });
+
+    // Fallback to coreTitle if first exact get fails and they differ
+    if (!getRes.ok && coreTitle !== decodedTitle) {
+      getUrl = `https://lrclib.net/api/get?track_name=${encodeURIComponent(coreTitle)}&artist_name=${encodeURIComponent(decodedArtist)}`;
+      getRes = await fetch(getUrl, {
+        headers: { 'User-Agent': 'SpotifyClone/1.0.0 (https://github.com/rajankit49/spotify-clone)' }
+      });
+    }
+
+    if (getRes.ok) {
+      const data = await getRes.json();
+      const text = data.syncedLyrics || data.plainLyrics || '';
+      const parsed = data.syncedLyrics ? parseLrcText(data.syncedLyrics) : distributePlainLyrics(data.plainLyrics, song.duration);
+      if (hasNonLatin(text)) {
+        results.original = parsed;
+      } else {
+        results.english = parsed;
+      }
+    }
+  } catch (err) {
+    console.warn('LRCLIB exact get failed:', err.message);
+  }
+
+  // LRCLIB Search Fallback (uses cleaned coreTitle query for better matching rate)
+  if ((!results.english || results.english.length === 0) && (!results.original || results.original.length === 0)) {
+    try {
+      const query = `${coreTitle || decodedTitle} ${decodedArtist}`;
+      const searchUrl = `https://lrclib.net/api/search?q=${encodeURIComponent(query)}`;
+      const searchRes = await fetch(searchUrl, {
+        headers: { 'User-Agent': 'SpotifyClone/1.0.0 (https://github.com/rajankit49/spotify-clone)' }
+      });
+      if (searchRes.ok) {
+        const data = await searchRes.json();
+        const matches = data.filter(t => (t.syncedLyrics || t.plainLyrics) && isTitleMatch(coreTitle || decodedTitle, t.trackName));
+        const candidates = matches.length > 0 ? matches : data;
+
+        for (const track of candidates) {
+          const text = track.syncedLyrics || track.plainLyrics;
+          if (!text) continue;
+          const parsed = track.syncedLyrics ? parseLrcText(track.syncedLyrics) : distributePlainLyrics(track.plainLyrics, song.duration);
+          if (hasNonLatin(text)) {
+            if (!results.original) results.original = parsed;
+          } else {
+            if (!results.english) results.english = parsed;
+          }
+          if (results.english && results.original) break;
+        }
+      }
+    } catch (err) {
+      console.warn('LRCLIB search fallback failed:', err.message);
+    }
+  }
+
+  // --- SOURCE 2: JioSaavn API fallback ---
+  if ((!results.english || results.english.length === 0) && (!results.original || results.original.length === 0)) {
+    try {
+      const query = `${coreTitle || decodedTitle} ${decodedArtist}`;
+      const searchRes = await fetch(`https://saavn.sumit.co/api/search/songs?query=${encodeURIComponent(query)}`);
+      if (searchRes.ok) {
+        const searchData = await searchRes.json();
+        const resultsList = searchData.data?.results || [];
+        const matches = resultsList.filter(t => isTitleMatch(coreTitle || decodedTitle, t.name));
+        const bestTrack = matches.length > 0 ? matches[0] : resultsList[0];
+
+        if (bestTrack) {
+          const lyricsRes = await fetch(`https://saavn.sumit.co/api/songs/${bestTrack.id}/lyrics`);
+          if (lyricsRes.ok) {
+            const lyricsData = await lyricsRes.json();
+            if (lyricsData.success && lyricsData.data?.lyrics) {
+              const text = lyricsData.data?.lyrics;
+              const parsed = distributePlainLyrics(text, song.duration);
+              if (hasNonLatin(text)) {
+                results.original = parsed;
+              } else {
+                results.english = parsed;
+              }
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('JioSaavn lyrics fetch failed:', err.message);
+    }
+  }
+
+  // --- SOURCE 3: Dummy Fallback ---
+  if ((!results.english || results.english.length === 0) && (!results.original || results.original.length === 0)) {
+    results.english = generateLyrics(song);
+  }
+
+  return results;
 };
 
 // Metadata helpers for offline download caching
@@ -124,9 +315,29 @@ export const PlayerProvider = ({ children }) => {
   
   // Real-time Lyrics, Friend Activity, offline downloads, Jam sessions state
   const [lyrics, setLyrics] = useState([]);
+  const [availableLyrics, setAvailableLyrics] = useState({ english: null, original: null });
+  const [preferredScript, setPreferredScriptState] = useState(() => {
+    return localStorage.getItem('spotify_preferred_script') || 'english';
+  });
+
+  const togglePreferredScript = () => {
+    const nextScript = preferredScript === 'english' ? 'original' : 'english';
+    setPreferredScriptState(nextScript);
+    localStorage.setItem('spotify_preferred_script', nextScript);
+    
+    if (nextScript === 'english' && availableLyrics.english) {
+      setLyrics(availableLyrics.english);
+    } else if (nextScript === 'original' && availableLyrics.original) {
+      setLyrics(availableLyrics.original);
+    } else if (availableLyrics.original || availableLyrics.english) {
+      setLyrics(availableLyrics.original || availableLyrics.english);
+    }
+  };
+
   const [friendActivities, setFriendActivities] = useState({});
   const [downloadedSongs, setDownloadedSongs] = useState([]);
   const [jamRoom, setJamRoom] = useState(null); // roomState object
+  const [isPlayerExpanded, setIsPlayerExpanded] = useState(false);
 
   const audioRef = useRef(new Audio());
   const socketRef = useRef(null);
@@ -135,6 +346,32 @@ export const PlayerProvider = ({ children }) => {
   useEffect(() => {
     setDownloadedSongs(getDownloadedSongsMetadata());
   }, []);
+
+  // Auto-fetch lyrics whenever currentSong changes (handles all song loads: search, library, jam room, etc.)
+  useEffect(() => {
+    if (!currentSong) {
+      setLyrics([]);
+      setAvailableLyrics({ english: null, original: null });
+      return;
+    }
+    
+    setLyrics([{ time: 0, text: "Loading lyrics..." }]);
+    fetchLyricsForSong(currentSong).then(resultMap => {
+      setAvailableLyrics(resultMap);
+      const activeScript = localStorage.getItem('spotify_preferred_script') || 'english';
+      if (activeScript === 'english' && resultMap.english) {
+        setLyrics(resultMap.english);
+      } else if (activeScript === 'original' && resultMap.original) {
+        setLyrics(resultMap.original);
+      } else {
+        setLyrics(resultMap.english || resultMap.original || []);
+      }
+    }).catch(() => {
+      const dummy = generateLyrics(currentSong);
+      setAvailableLyrics({ english: dummy, original: null });
+      setLyrics(dummy);
+    });
+  }, [currentSong]);
 
   // --- Socket.io Handlers ---
   useEffect(() => {
@@ -319,7 +556,7 @@ export const PlayerProvider = ({ children }) => {
     setCurrentIndex(index);
     setProgress(0);
     setDuration(0);
-    setLyrics(generateLyrics(song));
+
 
     // Resolve URL for offline or online play
     let audioSrc = song.uri || song.audioUrl || '';
@@ -366,6 +603,9 @@ export const PlayerProvider = ({ children }) => {
   const playQueue = useCallback((songs, startIndex = 0) => {
     setQueue(songs);
     loadAndPlay(songs, startIndex);
+    if (window.innerWidth <= 768) {
+      setIsPlayerExpanded(true);
+    }
   }, [loadAndPlay]);
 
   // --- Play a single song ---
@@ -377,11 +617,17 @@ export const PlayerProvider = ({ children }) => {
         return;
       }
       loadAndPlay(queue, idxInQueue);
+      if (window.innerWidth <= 768) {
+        setIsPlayerExpanded(true);
+      }
       return;
     }
     const newQueue = [song];
     setQueue(newQueue);
     loadAndPlay(newQueue, 0);
+    if (window.innerWidth <= 768) {
+      setIsPlayerExpanded(true);
+    }
   }, [queue, currentIndex, loadAndPlay]);
 
   // --- Skip Next ---
@@ -600,10 +846,15 @@ export const PlayerProvider = ({ children }) => {
       likedSongIds,
       likedSongUris,
       lyrics,
+      availableLyrics,
+      preferredScript,
+      togglePreferredScript,
       friendActivities,
       downloadedSongs,
       jamRoom,
       isSongLiked,
+      isPlayerExpanded,
+      setIsPlayerExpanded,
       playSong,
       playQueue,
       togglePlay,

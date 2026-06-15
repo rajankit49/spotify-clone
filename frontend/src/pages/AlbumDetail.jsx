@@ -2,7 +2,7 @@ import React, { useEffect, useState, useContext } from 'react';
 import { useParams } from 'react-router-dom';
 import { Play, Pause } from 'lucide-react';
 import { getAlbumById } from '../services/musicService';
-import { PlayerContext } from '../context/PlayerContext';
+import { PlayerContext, cleanSongTitle } from '../context/PlayerContext';
 import AddToPlaylistModal from '../components/AddToPlaylistModal';
 import '../styles/playlist.css'; // We can reuse playlist.css for the album layout
 
@@ -111,10 +111,11 @@ const AlbumDetail = () => {
                   </div>
                   <div className="track-info">
                     <span className="track-title" style={{ color: isActive ? 'var(--spotify-green)' : undefined }}>
-                      {song.title}
+                      {cleanSongTitle(song.title)}
                     </span>
-                    <span className="track-artist">{song.artist?.username || album.artist?.username || 'Unknown'}</span>
+                    <span className="track-artist-sub">{song.artist?.username || album.artist?.username || 'Unknown'}</span>
                   </div>
+                  <span className="track-artist">{song.artist?.username || album.artist?.username || 'Unknown'}</span>
                   <span className="track-duration">{formatDuration(song.duration)}</span>
                   <button
                     className="control-btn"

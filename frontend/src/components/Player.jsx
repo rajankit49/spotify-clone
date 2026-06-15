@@ -2,10 +2,46 @@ import React, { useContext, useState, useEffect, useRef } from 'react';
 import {
   Play, Pause, SkipBack, SkipForward,
   Repeat, Repeat1, Shuffle, Volume2, VolumeX, Volume1, Heart,
-  AlignLeft, Users, Download, CheckCircle2, Radio
+  AlignLeft, Users, Download, CheckCircle2, Radio, ChevronDown
 } from 'lucide-react';
-import { PlayerContext } from '../context/PlayerContext';
+import { PlayerContext, cleanSongTitle } from '../context/PlayerContext';
 import '../styles/layout.css';
+
+// Custom Devices / Connect outline icon matching Spotify UI
+const DevicesIcon = ({ size = 20, ...props }) => (
+  <svg 
+    viewBox="0 0 24 24" 
+    width={size} 
+    height={size} 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round"
+    {...props}
+  >
+    <rect x="2" y="4" width="14" height="12" rx="2" />
+    <path d="M6 16v3h6v-3" />
+    <path d="M4 19h10" />
+    <rect x="14" y="9" width="8" height="11" rx="1.5" fill="var(--mobile-player-bg, #181818)" />
+    <circle cx="18" cy="12.5" r="1" fill="currentColor" />
+    <circle cx="18" cy="16.5" r="1.5" fill="currentColor" />
+  </svg>
+);
+
+// Muted dark dynamic song background colors for Spotify mobile look
+const getSongColor = (song) => {
+  if (!song) return '#282828';
+  let hash = 0;
+  const str = (song.title || '') + (song.artist?.username || '');
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const hue = Math.abs(hash % 360);
+  return `hsl(${hue}, 50%, 14%)`;
+};
+
+
 
 const Player = () => {
   const {
@@ -28,13 +64,18 @@ const Player = () => {
     isSongLiked,
     toggleLike,
     lyrics,
+    availableLyrics,
+    preferredScript,
+    togglePreferredScript,
     downloadedSongs,
     downloadTrack,
     deleteDownloadedTrack,
     jamRoom,
     startJamSession,
     joinJamSession,
-    leaveJamSession
+    leaveJamSession,
+    isPlayerExpanded,
+    setIsPlayerExpanded
   } = useContext(PlayerContext);
 
   const [showLyrics, setShowLyrics] = useState(false);
@@ -82,7 +123,19 @@ const Player = () => {
   const isSongDownloaded = currentSong && downloadedSongs.some(s => s._id === currentSong._id);
 
   return (
-    <div className="player" style={{ position: 'relative' }}>
+    <div 
+      className="player" 
+      style={{ 
+        position: 'relative',
+        '--mobile-player-bg': getSongColor(currentSong)
+      }}
+      onClick={(e) => {
+        const isInteractive = e.target.closest('button') || e.target.closest('input') || e.target.closest('a');
+        if (!isInteractive) {
+          setIsPlayerExpanded(true);
+        }
+      }}
+    >
       {/* LEFT — Song Info & Offline Downloader */}
       <div className="player-left">
         {currentSong ? (
@@ -98,7 +151,7 @@ const Player = () => {
                 color: 'var(--text-base)', whiteSpace: 'nowrap',
                 overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '140px'
               }}>
-                {currentSong.title}
+                {cleanSongTitle(currentSong.title)}
               </span>
               <span style={{ fontSize: '0.75rem', color: 'var(--text-subdued)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '140px' }}>
                 {currentSong.artist?.username || 'Unknown Artist'}
@@ -283,47 +336,64 @@ const Player = () => {
         </div>
       </div>
 
+      {/* Mobile-only Controls (Hidden on desktop via CSS) */}
+      {currentSong && (
+        <div className="player-mobile-controls">
+          {/* Devices/Connect Button */}
+          <button
+            className="control-btn mobile-devices-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowJamPanel(prev => !prev);
+            }}
+            title="Connect to a device"
+            style={{ color: '#fff', padding: 0, background: 'transparent', border: 'none', display: 'flex', alignItems: 'center' }}
+          >
+            <DevicesIcon size={22} />
+          </button>
+
+          {/* Play/Pause Button */}
+          <button
+            className="play-btn mobile-play-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              togglePlay();
+            }}
+            disabled={!currentSong}
+            title={isPlaying ? 'Pause' : 'Play'}
+            style={{ 
+              background: 'transparent', 
+              color: '#fff', 
+              border: 'none', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              padding: 0,
+              width: '28px',
+              height: '28px'
+            }}
+          >
+            {isPlaying
+              ? <Pause size={28} fill="currentColor" stroke="currentColor" />
+              : <Play size={28} fill="currentColor" stroke="currentColor" />
+            }
+          </button>
+        </div>
+      )}
+
+      {/* Mobile-only bottom progress line */}
+      {currentSong && (
+        <div className="player-mobile-progress">
+          <div 
+            className="player-mobile-progress-bar" 
+            style={{ width: `${progressPercent}%` }} 
+          />
+        </div>
+      )}
+
       {/* Synced Lyrics Full-Screen Overlay */}
       {showLyrics && currentSong && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: '90px',
-          backgroundColor: 'rgba(12, 12, 12, 0.95)',
-          backdropFilter: 'blur(30px)',
-          zIndex: 999,
-          display: 'flex',
-          flexDirection: 'column',
-          padding: '48px',
-          color: '#fff',
-          animation: 'slideUp 0.3s ease-out',
-          overflow: 'hidden'
-        }}>
-          <style>{`
-            @keyframes slideUp {
-              from { transform: translateY(100%); }
-              to { transform: translateY(0); }
-            }
-            .lyric-line {
-              font-size: 2.2rem;
-              font-weight: 800;
-              margin: 16px 0;
-              color: rgba(255, 255, 255, 0.3);
-              cursor: pointer;
-              transition: color 0.2s ease, transform 0.2s ease;
-              line-height: 1.4;
-            }
-            .lyric-line:hover {
-              color: #fff;
-              transform: scale(1.02);
-            }
-            .lyric-line-active {
-              color: var(--spotify-green) !important;
-              transform: scale(1.05);
-            }
-          `}</style>
+        <div className="lyrics-overlay-panel">
           
           {/* Lyrics Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexShrink: 0 }}>
@@ -334,29 +404,56 @@ const Player = () => {
                 style={{ width: '60px', height: '60px', borderRadius: '4px', objectFit: 'cover' }}
               />
               <div>
-                <h2 style={{ fontSize: '1.25rem', fontWeight: '800', margin: 0 }}>{currentSong.title}</h2>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: '800', margin: 0 }}>{cleanSongTitle(currentSong.title)}</h2>
                 <p style={{ fontSize: '0.9rem', color: 'var(--text-subdued)', margin: 0 }}>{currentSong.artist?.username || 'Unknown Artist'}</p>
               </div>
             </div>
-            <button 
-              onClick={() => setShowLyrics(false)}
-              style={{
-                background: 'rgba(255,255,255,0.1)',
-                border: 'none',
-                color: '#fff',
-                borderRadius: '50%',
-                width: '40px',
-                height: '40px',
-                cursor: 'pointer',
-                fontWeight: '700',
-                fontSize: '1rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              ✕
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              {availableLyrics && availableLyrics.english && availableLyrics.original && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    togglePreferredScript();
+                  }}
+                  style={{
+                    background: 'rgba(255,255,255,0.15)',
+                    border: 'none',
+                    color: '#fff',
+                    borderRadius: '500px',
+                    padding: '8px 16px',
+                    cursor: 'pointer',
+                    fontWeight: '700',
+                    fontSize: '0.8rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    transition: 'background-color 0.2s'
+                  }}
+                >
+                  🌐 {preferredScript === 'english' ? 'Original Script' : 'English Text'}
+                </button>
+              )}
+
+              <button 
+                onClick={() => setShowLyrics(false)}
+                style={{
+                  background: 'rgba(255,255,255,0.1)',
+                  border: 'none',
+                  color: '#fff',
+                  borderRadius: '50%',
+                  width: '40px',
+                  height: '40px',
+                  cursor: 'pointer',
+                  fontWeight: '700',
+                  fontSize: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                ✕
+              </button>
+            </div>
           </div>
 
           {/* Sync lines */}
@@ -392,7 +489,7 @@ const Player = () => {
 
       {/* Jam Session Popover */}
       {showJamPanel && (
-        <div style={{
+        <div className="jam-popover" style={{
           position: 'absolute',
           bottom: '100px',
           right: '24px',
@@ -522,6 +619,213 @@ const Player = () => {
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Expanded/Full-Screen Player Overlay */}
+      {isPlayerExpanded && currentSong && (
+        <div className="expanded-player">
+          {/* Background Blurred Art */}
+          <div style={{
+            position: 'absolute',
+            top: 0, left: 0, right: 0, bottom: 0,
+            backgroundImage: `url(${getSongCover(currentSong, 400)})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            filter: 'blur(50px) brightness(0.25)',
+            transform: 'scale(1.2)',
+            zIndex: -1,
+            pointerEvents: 'none'
+          }} />
+
+          {/* Header */}
+          <div className="expanded-player-header">
+            <button 
+              className="expanded-player-close-btn"
+              onClick={() => setIsPlayerExpanded(false)}
+              title="Minimize"
+            >
+              <ChevronDown size={28} />
+            </button>
+            <div className="expanded-player-title-container">
+              <span className="expanded-player-subtitle">PLAYING FROM QUEUE</span>
+              <span className="expanded-player-source-title">{cleanSongTitle(currentSong.title)}</span>
+            </div>
+            <div style={{ width: '44px' }} /> {/* Spacer to center the title */}
+          </div>
+
+          {/* Main Content */}
+          <div className="expanded-player-content">
+            {/* Cover Art */}
+            <div className="expanded-art-container">
+              <img 
+                src={getSongCover(currentSong, 400)} 
+                alt={currentSong.title} 
+                className="expanded-art"
+              />
+            </div>
+
+            {/* Song Details */}
+            <div className="expanded-info-container">
+              <div className="expanded-song-details">
+                <span className="expanded-song-title">{cleanSongTitle(currentSong.title)}</span>
+                <span className="expanded-song-artist">{currentSong.artist?.username || 'Unknown Artist'}</span>
+              </div>
+              
+              {/* Like / Heart Icon */}
+              {(() => {
+                const isLiked = isSongLiked(currentSong);
+                return (
+                  <button
+                    className="control-btn"
+                    onClick={() => toggleLike(currentSong)}
+                    title={isLiked ? "Unlike song" : "Like song"}
+                    style={{ color: isLiked ? 'var(--spotify-green)' : '#fff', transform: 'scale(1.3)', padding: '8px' }}
+                  >
+                    <Heart size={20} fill={isLiked ? "currentColor" : "none"} />
+                  </button>
+                );
+              })()}
+            </div>
+
+            {/* Progress / Seek Slider */}
+            <div className="expanded-progress-container">
+              <input
+                type="range"
+                min={0}
+                max={duration || 100}
+                value={progress || 0}
+                className="custom-range"
+                onChange={(e) => seek(Number(e.target.value))}
+                style={{ '--progress': `${progressPercent}%`, height: '6px', borderRadius: '3px' }}
+                disabled={!currentSong}
+              />
+              <div className="expanded-time-row">
+                <span>{formatTime(progress)}</span>
+                <span>{formatTime(duration)}</span>
+              </div>
+            </div>
+
+            {/* Controls Row */}
+            <div className="expanded-controls-row">
+              {/* Shuffle */}
+              <button
+                className={`control-btn ${isShuffle ? 'active' : ''}`}
+                onClick={toggleShuffle}
+                title="Shuffle"
+                style={{ color: isShuffle ? 'var(--spotify-green)' : 'rgba(255,255,255,0.6)', transform: 'scale(1.2)' }}
+              >
+                <Shuffle size={20} />
+              </button>
+
+              {/* Previous */}
+              <button
+                className="control-btn"
+                onClick={skipPrev}
+                disabled={!currentSong}
+                title="Previous"
+                style={{ color: '#fff', transform: 'scale(1.3)' }}
+              >
+                <SkipBack size={24} />
+              </button>
+
+              {/* Play / Pause Toggle */}
+              <button
+                className="expanded-play-btn"
+                onClick={togglePlay}
+                disabled={!currentSong}
+                title={isPlaying ? 'Pause' : 'Play'}
+              >
+                {isPlaying
+                  ? <Pause size={24} fill="currentColor" />
+                  : <Play size={24} fill="currentColor" />
+                }
+              </button>
+
+              {/* Next */}
+              <button
+                className="control-btn"
+                onClick={() => skipNext(false)}
+                disabled={!currentSong}
+                title="Next"
+                style={{ color: '#fff', transform: 'scale(1.3)' }}
+              >
+                <SkipForward size={24} />
+              </button>
+
+              {/* Repeat */}
+              <button
+                className="control-btn"
+                onClick={cycleRepeat}
+                title={`Repeat: ${repeatMode}`}
+                style={{ color: repeatMode !== 'none' ? 'var(--spotify-green)' : 'rgba(255,255,255,0.6)', position: 'relative', transform: 'scale(1.2)' }}
+              >
+                <RepeatIcon size={20} />
+                {repeatMode === 'one' && (
+                  <span style={{
+                    position: 'absolute', bottom: '-2px', right: '-2px',
+                    width: '6px', height: '6px', borderRadius: '50%',
+                    backgroundColor: 'var(--spotify-green)'
+                  }} />
+                )}
+              </button>
+            </div>
+
+            {/* Footer Buttons (Lyrics, Jam, Volume) */}
+            <div className="expanded-footer-controls">
+              {/* Lyrics Button */}
+              <button
+                className="control-btn"
+                onClick={() => setShowLyrics(prev => !prev)}
+                title="Lyrics"
+                style={{ color: showLyrics ? 'var(--spotify-green)' : 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', gap: '8px' }}
+              >
+                <AlignLeft size={20} />
+                <span style={{ fontSize: '0.8rem', fontWeight: '700' }}>Lyrics</span>
+              </button>
+
+              {/* Jam Button */}
+              <button
+                className="control-btn"
+                onClick={() => setShowJamPanel(prev => !prev)}
+                title="Spotify Jam Session"
+                style={{ color: jamRoom ? 'var(--spotify-green)' : 'rgba(255,255,255,0.7)' }}
+              >
+                <Users size={20} />
+              </button>
+
+              {/* Volume Slider */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  className="control-btn"
+                  onClick={() => {
+                    if (volume === 0) {
+                      const saved = localStorage.getItem('player_volume_before_mute');
+                      setVolume(saved ? parseFloat(saved) : 0.7);
+                    } else {
+                      localStorage.setItem('player_volume_before_mute', volume);
+                      setVolume(0);
+                    }
+                  }}
+                  title={volume === 0 ? 'Unmute' : 'Mute'}
+                  style={{ color: 'rgba(255,255,255,0.7)' }}
+                >
+                  <VolumeIcon size={18} />
+                </button>
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={volume}
+                  className="custom-range"
+                  onChange={(e) => setVolume(Number(e.target.value))}
+                  style={{ width: '80px', flex: 'none', '--progress': `${volume * 100}%` }}
+                  title={`Volume: ${Math.round(volume * 100)}%`}
+                />
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
