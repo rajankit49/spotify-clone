@@ -332,3 +332,73 @@
 .custom-range:hover::-webkit-slider-thumb {
   opacity: 1;
 }
+
+/* --- MOBILE RESPONSIVE OPTIMIZATIONS --- */
+@media (max-width: 768px) {
+  /* Topbar Mobile Styles */
+  .topbar {
+    padding: 12px 16px !important;
+  }
+  .topbar-nav {
+    display: none !important;
+  }
+  .topbar-profile {
+    gap: 8px !important;
+  }
+  .logout-btn {
+    padding: 6px 12px !important;
+    font-size: 0.75rem !important;
+  }
+  .profile-icon {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 0.8rem !important;
+  }
+  .topbar-search-input {
+    padding: 8px 12px 8px 36px !important;
+    font-size: 0.8rem !important;
+  }
+  .topbar svg {
+    left: 12px !important;
+  }
+
+  /* Player Mobile Styles */
+  .player {
+    padding: 0 12px !important;
+    height: 80px !important;
+  }
+  .player-right {
+    display: none !important;
+  }
+  .player-left {
+    width: 45% !important;
+  }
+  .player-center {
+    width: 55% !important;
+  }
+  .player-left img {
+    width: 44px !important;
+    height: 44px !important;
+  }
+  .player-left span {
+    max-width: 90px !important;
+  }
+  .player-left button {
+    display: none !important; /* Hide like/download icons on mobile player to keep it clean */
+  }
+  /* Hide shuffle and repeat controls on mobile player to prevent overcrowding */
+  .player-controls button:first-child,
+  .player-controls button:last-child {
+    display: none !important;
+  }
+  .player-controls {
+    gap: 12px !important;
+  }
+  
+  .progress-container {
+    gap: 4px !important;
+  }
+  .progress-container span {
+    display: none !important; /* Hide time numbers on small screens to save space */
+  }
+}

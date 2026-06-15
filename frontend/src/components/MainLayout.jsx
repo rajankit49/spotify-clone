@@ -1,4 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { NavLink } from 'react-router-dom';
+import { Home, Search, Heart } from 'lucide-react';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
 import Player from './Player';
@@ -30,6 +32,22 @@ const MainLayout = ({ children }) => {
       </main>
       <RightSidebar />
       <Player />
+      
+      {/* Mobile Bottom Navigation Bar (Hidden on desktop via CSS) */}
+      <div className="mobile-nav">
+        <NavLink to="/" end className={({ isActive }) => `mobile-nav-link ${isActive ? 'active' : ''}`}>
+          <Home size={22} />
+          <span>Home</span>
+        </NavLink>
+        <NavLink to="/search" className={({ isActive }) => `mobile-nav-link ${isActive ? 'active' : ''}`}>
+          <Search size={22} />
+          <span>Search</span>
+        </NavLink>
+        <NavLink to="/liked" className={({ isActive }) => `mobile-nav-link ${isActive ? 'active' : ''}`}>
+          <Heart size={22} />
+          <span>Library</span>
+        </NavLink>
+      </div>
     </>
   );
 };

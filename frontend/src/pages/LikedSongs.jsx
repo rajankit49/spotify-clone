@@ -134,6 +134,7 @@ const LikedSongs = () => {
                     <span className="track-title" style={{ color: isActive ? 'var(--spotify-green)' : undefined }}>
                       {song.title}
                     </span>
+                    <span className="track-artist-sub">{song.artist?.username || 'Unknown'}</span>
                   </div>
                   <span className="track-artist">{song.artist?.username || 'Unknown'}</span>
                   <span className="track-duration">{formatDuration(song.duration)}</span>

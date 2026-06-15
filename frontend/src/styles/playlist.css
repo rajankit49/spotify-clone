@@ -203,3 +203,88 @@
   color: var(--text-subdued);
   padding: 64px 24px;
 }
+
+.track-artist-sub {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  /* Hero section optimizations */
+  .playlist-hero {
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+    padding: 32px 16px 16px !important;
+    gap: 16px !important;
+    min-height: auto !important;
+  }
+  .playlist-hero-image-wrapper {
+    width: 150px !important;
+    height: 150px !important;
+  }
+  .playlist-hero-image {
+    width: 150px !important;
+    height: 150px !important;
+  }
+  .playlist-hero-title {
+    font-size: 1.8rem !important;
+  }
+  .playlist-hero-meta {
+    font-size: 0.8rem !important;
+    margin-top: 4px !important;
+  }
+
+  /* Controls optimizations */
+  .playlist-controls {
+    padding: 16px !important;
+    gap: 12px !important;
+    justify-content: center !important;
+  }
+  .playlist-play-btn {
+    width: 48px !important;
+    height: 48px !important;
+  }
+
+  /* Track list table optimizations */
+  .track-list {
+    padding: 0 8px 16px !important;
+  }
+  .track-list-header {
+    grid-template-columns: 32px 1fr 50px !important;
+    gap: 8px !important;
+    padding: 0 8px 8px !important;
+  }
+  .track-list-header > span:nth-child(3) {
+    display: none !important; /* Hide Artist column header */
+  }
+  .track-row {
+    grid-template-columns: 32px 1fr 50px !important;
+    gap: 8px !important;
+    padding: 8px !important;
+  }
+  .track-row > .track-artist {
+    display: none !important; /* Hide Artist column cells */
+  }
+  
+  /* Show artist sub inside track-info on mobile */
+  .track-artist-sub {
+    display: block !important;
+    font-size: 0.75rem;
+    color: var(--text-subdued);
+    margin-top: 2px;
+  }
+
+  .track-title {
+    font-size: 0.85rem !important;
+  }
+  .track-duration {
+    font-size: 0.8rem !important;
+  }
+
+  /* Album specific list overrides */
+  .track-list-header[style*="40px 1fr 60px 40px"],
+  .track-row[style*="40px 1fr 60px 40px"] {
+    grid-template-columns: 32px 1fr 50px 32px !important;
+    gap: 8px !important;
+  }
+}

@@ -131,3 +131,41 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+@media (max-width: 768px) {
+  .home-container {
+    padding: 16px !important;
+  }
+  .home-section {
+    margin-bottom: 24px !important;
+  }
+  .home-section-title {
+    font-size: 1.25rem !important;
+    margin-bottom: 12px !important;
+  }
+  .grid-container {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)) !important;
+    gap: 12px !important;
+  }
+  .item-card {
+    padding: 10px !important;
+  }
+  .item-play-btn {
+    width: 36px !important;
+    height: 36px !important;
+    bottom: 6px !important;
+    right: 6px !important;
+  }
+  .item-add-btn {
+    width: 28px !important;
+    height: 28px !important;
+    top: 6px !important;
+    right: 6px !important;
+  }
+  .item-title {
+    font-size: 0.85rem !important;
+  }
+  .item-subtitle {
+    font-size: 0.75rem !important;
+  }
+}
