@@ -481,7 +481,7 @@ export const PlayerProvider = ({ children }) => {
 
   // --- Media Session API (Mobile Lock Screen Metadata) ---
   useEffect(() => {
-    if ('mediaSession' in navigator && window.MediaMetadata && currentSong) {
+    if (typeof navigator !== 'undefined' && 'mediaSession' in navigator && typeof window !== 'undefined' && window.MediaMetadata && currentSong) {
       const decodedTitle = cleanSongTitle(currentSong.title || 'Unknown Track');
       const decodedArtist = currentSong.artist?.username || 'Unknown Artist';
       
@@ -493,7 +493,7 @@ export const PlayerProvider = ({ children }) => {
         coverUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(decodedTitle)}&background=random&color=fff&size=512`;
       }
 
-      navigator.mediaSession.metadata = new MediaMetadata({
+      navigator.mediaSession.metadata = new window.MediaMetadata({
         title: decodedTitle,
         artist: decodedArtist,
         album: 'Spotify Clone',
@@ -510,13 +510,13 @@ export const PlayerProvider = ({ children }) => {
   }, [currentSong]);
 
   useEffect(() => {
-    if ('mediaSession' in navigator) {
+    if (typeof navigator !== 'undefined' && 'mediaSession' in navigator) {
       navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
     }
   }, [isPlaying]);
 
   useEffect(() => {
-    if ('mediaSession' in navigator && currentSong) {
+    if (typeof navigator !== 'undefined' && 'mediaSession' in navigator && currentSong) {
       try {
         navigator.mediaSession.setActionHandler('play', togglePlay);
         navigator.mediaSession.setActionHandler('pause', togglePlay);
