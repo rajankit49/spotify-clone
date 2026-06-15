@@ -481,7 +481,7 @@ export const PlayerProvider = ({ children }) => {
 
   // --- Media Session API (Mobile Lock Screen Metadata) ---
   useEffect(() => {
-    if ('mediaSession' in navigator && currentSong) {
+    if ('mediaSession' in navigator && window.MediaMetadata && currentSong) {
       const decodedTitle = cleanSongTitle(currentSong.title || 'Unknown Track');
       const decodedArtist = currentSong.artist?.username || 'Unknown Artist';
       
