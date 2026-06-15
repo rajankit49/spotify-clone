@@ -479,57 +479,7 @@ export const PlayerProvider = ({ children }) => {
     audioRef.current.volume = volume;
   }, [volume]);
 
-  // --- Media Session API (Mobile Lock Screen Metadata) ---
-  useEffect(() => {
-    if (typeof navigator !== 'undefined' && 'mediaSession' in navigator && typeof window !== 'undefined' && window.MediaMetadata && currentSong) {
-      const decodedTitle = cleanSongTitle(currentSong.title || 'Unknown Track');
-      const decodedArtist = currentSong.artist?.username || 'Unknown Artist';
-      
-      let coverUrl = currentSong.coverImage || '';
-      if (coverUrl && !coverUrl.startsWith('http')) {
-        coverUrl = window.location.origin + coverUrl;
-      }
-      if (!coverUrl) {
-        coverUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(decodedTitle)}&background=random&color=fff&size=512`;
-      }
 
-      navigator.mediaSession.metadata = new window.MediaMetadata({
-        title: decodedTitle,
-        artist: decodedArtist,
-        album: 'Spotify Clone',
-        artwork: [
-          { src: coverUrl, sizes: '96x96', type: 'image/png' },
-          { src: coverUrl, sizes: '128x128', type: 'image/png' },
-          { src: coverUrl, sizes: '192x192', type: 'image/png' },
-          { src: coverUrl, sizes: '256x256', type: 'image/png' },
-          { src: coverUrl, sizes: '384x384', type: 'image/png' },
-          { src: coverUrl, sizes: '512x512', type: 'image/png' },
-        ]
-      });
-    }
-  }, [currentSong]);
-
-  useEffect(() => {
-    if (typeof navigator !== 'undefined' && 'mediaSession' in navigator) {
-      navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
-    }
-  }, [isPlaying]);
-
-  useEffect(() => {
-    if (typeof navigator !== 'undefined' && 'mediaSession' in navigator && currentSong) {
-      try {
-        navigator.mediaSession.setActionHandler('play', togglePlay);
-        navigator.mediaSession.setActionHandler('pause', togglePlay);
-        navigator.mediaSession.setActionHandler('previoustrack', skipPrev);
-        navigator.mediaSession.setActionHandler('nexttrack', () => skipNext(false));
-        navigator.mediaSession.setActionHandler('seekto', (details) => {
-          seek(details.seekTime);
-        });
-      } catch (error) {
-        console.warn('Media Session Action Handlers setup failed:', error);
-      }
-    }
-  }, [currentSong, togglePlay, skipPrev, skipNext, seek]);
 
   const setVolume = (val) => {
     const clamped = Math.max(0, Math.min(1, val));
@@ -851,6 +801,58 @@ export const PlayerProvider = ({ children }) => {
       fetchLikedSongs();
     }
   }, [user, fetchLikedSongs]);
+
+  // --- Media Session API (Mobile Lock Screen Metadata) ---
+  useEffect(() => {
+    if (typeof navigator !== 'undefined' && 'mediaSession' in navigator && typeof window !== 'undefined' && window.MediaMetadata && currentSong) {
+      const decodedTitle = cleanSongTitle(currentSong.title || 'Unknown Track');
+      const decodedArtist = currentSong.artist?.username || 'Unknown Artist';
+      
+      let coverUrl = currentSong.coverImage || '';
+      if (coverUrl && !coverUrl.startsWith('http')) {
+        coverUrl = window.location.origin + coverUrl;
+      }
+      if (!coverUrl) {
+        coverUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(decodedTitle)}&background=random&color=fff&size=512`;
+      }
+
+      navigator.mediaSession.metadata = new window.MediaMetadata({
+        title: decodedTitle,
+        artist: decodedArtist,
+        album: 'Spotify Clone',
+        artwork: [
+          { src: coverUrl, sizes: '96x96', type: 'image/png' },
+          { src: coverUrl, sizes: '128x128', type: 'image/png' },
+          { src: coverUrl, sizes: '192x192', type: 'image/png' },
+          { src: coverUrl, sizes: '256x256', type: 'image/png' },
+          { src: coverUrl, sizes: '384x384', type: 'image/png' },
+          { src: coverUrl, sizes: '512x512', type: 'image/png' },
+        ]
+      });
+    }
+  }, [currentSong]);
+
+  useEffect(() => {
+    if (typeof navigator !== 'undefined' && 'mediaSession' in navigator) {
+      navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+    }
+  }, [isPlaying]);
+
+  useEffect(() => {
+    if (typeof navigator !== 'undefined' && 'mediaSession' in navigator && currentSong) {
+      try {
+        navigator.mediaSession.setActionHandler('play', togglePlay);
+        navigator.mediaSession.setActionHandler('pause', togglePlay);
+        navigator.mediaSession.setActionHandler('previoustrack', skipPrev);
+        navigator.mediaSession.setActionHandler('nexttrack', () => skipNext(false));
+        navigator.mediaSession.setActionHandler('seekto', (details) => {
+          seek(details.seekTime);
+        });
+      } catch (error) {
+        console.warn('Media Session Action Handlers setup failed:', error);
+      }
+    }
+  }, [currentSong, togglePlay, skipPrev, skipNext, seek]);
 
   return (
     <PlayerContext.Provider value={{
