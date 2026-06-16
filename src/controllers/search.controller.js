@@ -12,29 +12,69 @@ async function globalSearch(req, res) {
             return res.status(400).json({ message: "Search query 'q' is required" });
         }
 
-        // Case-insensitive regex search for local DB
-        const regex = new RegExp(q, 'i');
+        // --- Fuzzy / Approximate Search Helpers ---
 
-        // Find artists matching the search query
-        const matchingArtists = await userModel.find({ username: regex, role: 'artist' });
+        // Build a list of regex patterns from the query.
+        // Strategy:
+        //  1. Full query as a regex (catches correct spelling & partial matches)
+        //  2. Each individual word as its own regex (so "arjit singh" matches on "singh")
+        //  3. For short words (≥4 chars), generate 1-character-deletion variants
+        //     e.g. "arjit" → ["rjit","ajit","arit","arjt","arji"] which lets "arijit" be found
+        //     via the external APIs (JioSaavn handles this natively; local DB uses word split)
+
+        const buildFuzzyPatterns = (query) => {
+            const patterns = new Set();
+            const clean = query.trim();
+
+            // 1. Full query
+            patterns.add(new RegExp(clean, 'i'));
+
+            // 2. Each word separately (min 2 chars)
+            const words = clean.split(/\s+/).filter(w => w.length >= 2);
+            words.forEach(w => patterns.add(new RegExp(w, 'i')));
+
+            // 3. Single-char deletion variants for each word (catches common typos)
+            words.forEach(word => {
+                if (word.length >= 4) {
+                    for (let i = 0; i < word.length; i++) {
+                        const variant = word.slice(0, i) + word.slice(i + 1);
+                        if (variant.length >= 3) {
+                            patterns.add(new RegExp(variant, 'i'));
+                        }
+                    }
+                }
+            });
+
+            return Array.from(patterns);
+        };
+
+        const fuzzyPatterns = buildFuzzyPatterns(q);
+
+        // Build a MongoDB $or condition: match any fuzzy pattern against title
+        const titleOrConditions = fuzzyPatterns.map(regex => ({ title: regex }));
+
+        // Find artists matching any fuzzy pattern
+        const artistOrConditions = fuzzyPatterns.map(regex => ({ username: regex, role: 'artist' }));
+        const matchingArtists = await userModel.find({ $or: artistOrConditions });
         const matchingArtistIds = matchingArtists.map(artist => artist._id);
 
-        // Execute local searches, Spotify search, and JioSaavn search in parallel
+        // JioSaavn and Spotify already handle fuzzy/approximate matching natively on their end
+        // so we pass the original query as-is to them
         const [musics, albums, playlists, spotifyResults, saavnSongRes, saavnAlbumRes] = await Promise.all([
             musicModel.find({
                 status: 'approved',
                 $or: [
-                    { title: regex },
-                    { artist: { $in: matchingArtistIds } }
+                    ...titleOrConditions,
+                    ...(matchingArtistIds.length > 0 ? [{ artist: { $in: matchingArtistIds } }] : [])
                 ]
-            }).limit(10).populate('artist', 'username'),
+            }).limit(15).populate('artist', 'username'),
             albumModel.find({
                 $or: [
-                    { title: regex },
-                    { artist: { $in: matchingArtistIds } }
+                    ...titleOrConditions,
+                    ...(matchingArtistIds.length > 0 ? [{ artist: { $in: matchingArtistIds } }] : [])
                 ]
-            }).limit(10).populate('artist', 'username'),
-            playlistModel.find({ title: regex, isPublic: true }).limit(10).populate('owner', 'username'),
+            }).limit(15).populate('artist', 'username'),
+            playlistModel.find({ $or: titleOrConditions, isPublic: true }).limit(10).populate('owner', 'username'),
             searchSpotify(q, 15).catch(() => null),
             fetch(`https://saavn.sumit.co/api/search/songs?query=${encodeURIComponent(q)}`).catch(() => null),
             fetch(`https://saavn.sumit.co/api/search/albums?query=${encodeURIComponent(q)}`).catch(() => null)
