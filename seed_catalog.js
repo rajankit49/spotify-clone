@@ -37,7 +37,10 @@ async function resolveActualAudioLink(title, artistName, fallbackLink) {
             const data = await res.json();
             if (data.success && data.data?.results?.[0]) {
                 const track = data.data.results[0];
-                const streamLink = track.downloadUrl.find(d => d.quality === '160kbps')?.url || track.downloadUrl[track.downloadUrl.length - 1]?.url;
+                let streamLink = track.downloadUrl.find(d => d.quality === '160kbps')?.url || track.downloadUrl[track.downloadUrl.length - 1]?.url;
+                if (streamLink && streamLink.startsWith('http://')) {
+                    streamLink = streamLink.replace('http://', 'https://');
+                }
                 if (streamLink) {
                     console.log(`Resolved real track for "${title}" by ${artistName}`);
                     return streamLink;

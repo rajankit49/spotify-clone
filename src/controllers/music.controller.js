@@ -132,7 +132,10 @@ async function getAlbumById(req, res) {
                                     email: ""
                                 },
                                 musics: (spotifyAlbum.songs || []).map((track) => {
-                                    const streamLink = track.downloadUrl.find(d => d.quality === '160kbps')?.url || track.downloadUrl[track.downloadUrl.length - 1]?.url;
+                                    let streamLink = track.downloadUrl.find(d => d.quality === '160kbps')?.url || track.downloadUrl[track.downloadUrl.length - 1]?.url;
+                                    if (streamLink && streamLink.startsWith('http://')) {
+                                        streamLink = streamLink.replace('http://', 'https://');
+                                    }
                                     return {
                                         _id: "saavn_" + track.id,
                                         title: track.name,

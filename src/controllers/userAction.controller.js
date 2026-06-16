@@ -43,7 +43,10 @@ async function resolveLocalMusic(saavnSongId) {
                 const data = await res.json();
                 if (data.success && data.data?.[0]) {
                     const track = data.data[0];
-                    const streamLink = track.downloadUrl.find(d => d.quality === '160kbps')?.url || track.downloadUrl[track.downloadUrl.length - 1]?.url;
+                    let streamLink = track.downloadUrl.find(d => d.quality === '160kbps')?.url || track.downloadUrl[track.downloadUrl.length - 1]?.url;
+                    if (streamLink && streamLink.startsWith('http://')) {
+                        streamLink = streamLink.replace('http://', 'https://');
+                    }
                     const artistName = track.artists?.primary?.[0]?.name || "Unknown Artist";
                     const artistId = track.artists?.primary?.[0]?.id || "unknown";
                     

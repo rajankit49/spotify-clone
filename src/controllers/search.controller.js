@@ -116,9 +116,12 @@ async function globalSearch(req, res) {
                 const sd = await saavnSongRes.json();
                 if (sd.success && sd.data?.results) {
                     externalMusics.push(...sd.data.results.map(t => {
-                        const streamUrl =
+                        let streamUrl =
                             t.downloadUrl.find(d => d.quality === '160kbps')?.url ||
                             t.downloadUrl[t.downloadUrl.length - 1]?.url;
+                        if (streamUrl && streamUrl.startsWith('http://')) {
+                            streamUrl = streamUrl.replace('http://', 'https://');
+                        }
                         return {
                             _id: 'saavn_' + t.id,
                             title: t.name,

@@ -52,7 +52,11 @@ const AdminDashboard = () => {
       audioRef.current.pause();
       setPlayingId(null);
     } else {
-      audioRef.current.src = song.uri;
+      let cleanUri = song.uri;
+      if (cleanUri && cleanUri.startsWith('http://')) {
+        cleanUri = cleanUri.replace('http://', 'https://');
+      }
+      audioRef.current.src = cleanUri;
       audioRef.current.play()
         .then(() => setPlayingId(song._id))
         .catch(err => {

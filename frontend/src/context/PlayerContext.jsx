@@ -324,12 +324,16 @@ export const PlayerProvider = ({ children }) => {
   // --- Local Caching (Downloads) Logic ---
   const downloadTrack = async (song) => {
     if (!song || !song.uri) return;
+    let trackUri = song.uri;
+    if (trackUri && trackUri.startsWith('http://')) {
+      trackUri = trackUri.replace('http://', 'https://');
+    }
     try {
       const cache = await caches.open(CACHE_NAME);
       toast.loading(`Downloading "${song.title}"...`, { id: song._id });
-      const response = await fetch(song.uri);
+      const response = await fetch(trackUri);
       if (!response.ok) throw new Error('Network file request failed');
-      await cache.put(song.uri, response.clone());
+      await cache.put(trackUri, response.clone());
       
       saveDownloadedSongMetadata(song);
       setDownloadedSongs(getDownloadedSongsMetadata());
@@ -342,9 +346,13 @@ export const PlayerProvider = ({ children }) => {
 
   const deleteDownloadedTrack = async (song) => {
     if (!song || !song.uri) return;
+    let trackUri = song.uri;
+    if (trackUri && trackUri.startsWith('http://')) {
+      trackUri = trackUri.replace('http://', 'https://');
+    }
     try {
       const cache = await caches.open(CACHE_NAME);
-      await cache.delete(song.uri);
+      await cache.delete(trackUri);
       removeDownloadedSongMetadata(song._id);
       setDownloadedSongs(getDownloadedSongsMetadata());
       toast.success(`Deleted "${song.title}" from downloads`);
@@ -365,6 +373,9 @@ export const PlayerProvider = ({ children }) => {
 
     // Resolve URL for offline or online play
     let audioSrc = song.uri || song.audioUrl || '';
+    if (audioSrc && audioSrc.startsWith('http://')) {
+      audioSrc = audioSrc.replace('http://', 'https://');
+    }
     const isOffline = !navigator.onLine;
 
     if (isOffline) {
@@ -770,7 +781,11 @@ export const PlayerProvider = ({ children }) => {
         const isDifferentSong = !currentSong || currentSong._id !== syncSong._id;
         if (isDifferentSong) {
           setCurrentSong(syncSong);
-          audioRef.current.src = syncSong.uri || syncSong.audioUrl || '';
+          let syncSrc = syncSong.uri || syncSong.audioUrl || '';
+          if (syncSrc && syncSrc.startsWith('http://')) {
+            syncSrc = syncSrc.replace('http://', 'https://');
+          }
+          audioRef.current.src = syncSrc;
           if (syncIsPlaying) {
             audioRef.current.play().then(() => setIsPlaying(true)).catch(console.error);
           } else {
