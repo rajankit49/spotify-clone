@@ -33,7 +33,7 @@ const ItemCard = ({ image, title, subtitle, onClick, onAddClick, showAddButton =
           <button 
             className="item-add-btn" 
             onClick={(e) => {
-              e.stopPropagation(); // prevent triggering the card's onClick
+              e.stopPropagation();
               onAddClick();
             }}
             title="Add to Playlist"
@@ -42,19 +42,34 @@ const ItemCard = ({ image, title, subtitle, onClick, onAddClick, showAddButton =
           </button>
         )}
         <button className="item-play-btn" onClick={(e) => {
-          // If we click play specifically, we don't need to stop propagation 
-          // because it will bubble to the card and trigger onClick anyway, 
-          // but we can stop it and call onClick explicitly if preferred.
         }}>
           <Play size={24} fill="currentColor" />
         </button>
       </div>
       <div className="item-details">
-        <h3 className="item-title">{cleanHTML(title)}</h3>
-        <p className="item-subtitle">{cleanHTML(subtitle)}</p>
+        <h3 className="item-title" title={cleanHTML(title)}>
+          {cleanHTML(title)}
+        </h3>
+        {subtitle && (
+          <p className="item-subtitle" title={cleanHTML(subtitle)}>
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              color: 'var(--text-subdued)',
+              fontSize: '0.75rem',
+              fontWeight: '500',
+            }}>
+              {/* Music note prefix so it reads as: "♪ Pawan Singh" */}
+              <span style={{ color: 'var(--spotify-green)', fontSize: '0.7rem' }}>♪</span>
+              {cleanHTML(subtitle)}
+            </span>
+          </p>
+        )}
       </div>
     </div>
   );
 };
 
 export default ItemCard;
+

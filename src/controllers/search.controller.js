@@ -12,35 +12,26 @@ async function globalSearch(req, res) {
             return res.status(400).json({ message: "Search query 'q' is required" });
         }
 
-        // --- Fuzzy / Approximate Search Helpers ---
-
-        // Build a list of regex patterns from the query.
-        // Strategy:
-        //  1. Full query as a regex (catches correct spelling & partial matches)
-        //  2. Each individual word as its own regex (so "arjit singh" matches on "singh")
-        //  3. For short words (≥4 chars), generate 1-character-deletion variants
-        //     e.g. "arjit" → ["rjit","ajit","arit","arjt","arji"] which lets "arijit" be found
-        //     via the external APIs (JioSaavn handles this natively; local DB uses word split)
-
+        // ─────────────────────────────────────────────────────────────
+        // STEP 1 – Build fuzzy regex patterns from the user's query
+        //   1. Full query phrase        → /nimiya k dadh/i
+        //   2. Each word separately     → /nimiya/i, /dadh/i
+        //   3. 1-char deletions per word → catches typos like "nimia"
+        // ─────────────────────────────────────────────────────────────
         const buildFuzzyPatterns = (query) => {
             const patterns = new Set();
             const clean = query.trim();
 
-            // 1. Full query
             patterns.add(new RegExp(clean, 'i'));
 
-            // 2. Each word separately (min 2 chars)
             const words = clean.split(/\s+/).filter(w => w.length >= 2);
             words.forEach(w => patterns.add(new RegExp(w, 'i')));
 
-            // 3. Single-char deletion variants for each word (catches common typos)
             words.forEach(word => {
                 if (word.length >= 4) {
                     for (let i = 0; i < word.length; i++) {
                         const variant = word.slice(0, i) + word.slice(i + 1);
-                        if (variant.length >= 3) {
-                            patterns.add(new RegExp(variant, 'i'));
-                        }
+                        if (variant.length >= 3) patterns.add(new RegExp(variant, 'i'));
                     }
                 }
             });
@@ -48,145 +39,182 @@ async function globalSearch(req, res) {
             return Array.from(patterns);
         };
 
-        const fuzzyPatterns = buildFuzzyPatterns(q);
+        const fuzzyPatterns   = buildFuzzyPatterns(q);
+        const titleOrConds    = fuzzyPatterns.map(r => ({ title: r }));
+        const artistOrConds   = fuzzyPatterns.map(r => ({ username: r, role: 'artist' }));
 
-        // Build a MongoDB $or condition: match any fuzzy pattern against title
-        const titleOrConditions = fuzzyPatterns.map(regex => ({ title: regex }));
+        const matchingArtists    = await userModel.find({ $or: artistOrConds });
+        const matchingArtistIds  = matchingArtists.map(a => a._id);
 
-        // Find artists matching any fuzzy pattern
-        const artistOrConditions = fuzzyPatterns.map(regex => ({ username: regex, role: 'artist' }));
-        const matchingArtists = await userModel.find({ $or: artistOrConditions });
-        const matchingArtistIds = matchingArtists.map(artist => artist._id);
+        // ─────────────────────────────────────────────────────────────
+        // STEP 2 – Fetch from ALL sources in parallel
+        //   • Local MongoDB  (approved songs uploaded by artists)
+        //   • JioSaavn API   (full-length Hindi/Bhojpuri/regional songs)
+        //   • Spotify API    (30-second previews, global catalogue)
+        //   Limits are HIGH so every version / artist is returned.
+        // ─────────────────────────────────────────────────────────────
+        const saavnBase = `https://saavn.sumit.co/api/search`;
 
-        // JioSaavn and Spotify already handle fuzzy/approximate matching natively on their end
-        // so we pass the original query as-is to them
         const [musics, albums, playlists, spotifyResults, saavnSongRes, saavnAlbumRes] = await Promise.all([
             musicModel.find({
                 status: 'approved',
                 $or: [
-                    ...titleOrConditions,
+                    ...titleOrConds,
                     ...(matchingArtistIds.length > 0 ? [{ artist: { $in: matchingArtistIds } }] : [])
                 ]
-            }).limit(15).populate('artist', 'username'),
+            }).limit(50).populate('artist', 'username'),
+
             albumModel.find({
                 $or: [
-                    ...titleOrConditions,
+                    ...titleOrConds,
                     ...(matchingArtistIds.length > 0 ? [{ artist: { $in: matchingArtistIds } }] : [])
                 ]
-            }).limit(15).populate('artist', 'username'),
-            playlistModel.find({ $or: titleOrConditions, isPublic: true }).limit(10).populate('owner', 'username'),
-            searchSpotify(q, 15).catch(() => null),
-            fetch(`https://saavn.sumit.co/api/search/songs?query=${encodeURIComponent(q)}`).catch(() => null),
-            fetch(`https://saavn.sumit.co/api/search/albums?query=${encodeURIComponent(q)}`).catch(() => null)
+            }).limit(50).populate('artist', 'username'),
+
+            playlistModel.find({ $or: titleOrConds, isPublic: true })
+                .limit(20).populate('owner', 'username'),
+
+            searchSpotify(q, 20).catch(() => null),
+
+            // Ask JioSaavn for up to 20 song results so all versions show up
+            fetch(`${saavnBase}/songs?query=${encodeURIComponent(q)}&limit=20`).catch(() => null),
+            fetch(`${saavnBase}/albums?query=${encodeURIComponent(q)}&limit=20`).catch(() => null)
         ]);
 
         let externalMusics = [];
         let externalAlbums = [];
 
-        // 1. Process Spotify tracks (only those with preview URLs)
-        if (spotifyResults && spotifyResults.tracks?.items) {
-            const spotifyTracks = spotifyResults.tracks.items
-                .filter(track => track.preview_url)
-                .map(track => ({
-                    _id: "spotify_" + track.id,
-                    title: track.name,
-                    uri: track.preview_url,
-                    coverImage: track.album.images[0]?.url || "",
+        // ── Spotify tracks (preview URLs only) ──────────────────────
+        if (spotifyResults?.tracks?.items) {
+            externalMusics.push(...spotifyResults.tracks.items
+                .filter(t => t.preview_url)
+                .map(t => ({
+                    _id: 'spotify_' + t.id,
+                    title: t.name,
+                    uri: t.preview_url,
+                    coverImage: t.album.images[0]?.url || '',
                     artist: {
-                        _id: "spotify_art_" + track.artists[0]?.id,
-                        username: track.artists[0]?.name
+                        _id: 'spotify_art_' + t.artists[0]?.id,
+                        username: t.artists[0]?.name
                     },
-                    duration: Math.round(track.duration_ms / 1000)
-                }));
-            externalMusics.push(...spotifyTracks);
+                    duration: Math.round(t.duration_ms / 1000),
+                    source: 'spotify'
+                }))
+            );
 
-            const spotifyAlbs = spotifyResults.albums?.items?.map(album => ({
-                _id: "spotify_alb_" + album.id,
-                title: album.name,
-                coverImage: album.images[0]?.url || "",
-                artist: {
-                    _id: "spotify_art_" + album.artists[0]?.id,
-                    username: album.artists[0]?.name
-                }
-            })) || [];
-            externalAlbums.push(...spotifyAlbs);
+            externalAlbums.push(...(spotifyResults.albums?.items?.map(a => ({
+                _id: 'spotify_alb_' + a.id,
+                title: a.name,
+                coverImage: a.images[0]?.url || '',
+                artist: { _id: 'spotify_art_' + a.artists[0]?.id, username: a.artists[0]?.name }
+            })) || []));
         }
 
-        // 2. Process JioSaavn tracks (full-length audio)
-        if (saavnSongRes && saavnSongRes.ok) {
+        // ── JioSaavn songs (full audio) ──────────────────────────────
+        if (saavnSongRes?.ok) {
             try {
-                const saavnSongData = await saavnSongRes.json();
-                if (saavnSongData.success && saavnSongData.data?.results) {
-                    const saavnTracks = saavnSongData.data.results.map(track => {
-                        const streamLink = track.downloadUrl.find(d => d.quality === '160kbps')?.url || track.downloadUrl[track.downloadUrl.length - 1]?.url;
+                const sd = await saavnSongRes.json();
+                if (sd.success && sd.data?.results) {
+                    externalMusics.push(...sd.data.results.map(t => {
+                        const streamUrl =
+                            t.downloadUrl.find(d => d.quality === '160kbps')?.url ||
+                            t.downloadUrl[t.downloadUrl.length - 1]?.url;
                         return {
-                            _id: "saavn_" + track.id,
-                            title: track.name,
-                            uri: streamLink,
-                            coverImage: track.image[track.image.length - 1]?.url || "",
+                            _id: 'saavn_' + t.id,
+                            title: t.name,
+                            uri: streamUrl,
+                            coverImage: t.image[t.image.length - 1]?.url || '',
                             artist: {
-                                _id: "saavn_art_" + (track.artists.primary[0]?.id || "unknown"),
-                                username: track.artists.primary[0]?.name || "Unknown Artist"
+                                _id: 'saavn_art_' + (t.artists.primary[0]?.id || 'unknown'),
+                                username: t.artists.primary[0]?.name || 'Unknown Artist'
                             },
-                            duration: track.duration
+                            duration: t.duration,
+                            source: 'jiosaavn'
                         };
-                    });
-                    externalMusics.push(...saavnTracks);
-                }
-            } catch (saavnErr) {
-                console.error("Saavn parsing error (songs):", saavnErr.message);
-            }
-        }
-
-        // 3. Process JioSaavn albums
-        if (saavnAlbumRes && saavnAlbumRes.ok) {
-            try {
-                const saavnAlbumData = await saavnAlbumRes.json();
-                if (saavnAlbumData.success && saavnAlbumData.data?.results) {
-                    const saavnAlbs = saavnAlbumData.data.results.map(album => ({
-                        _id: "saavn_alb_" + album.id,
-                        title: album.name,
-                        coverImage: album.image[album.image.length - 1]?.url || "",
-                        artist: {
-                            _id: "saavn_art_" + (album.artists?.primary?.[0]?.id || "unknown"),
-                            username: album.artists?.primary?.[0]?.name || "Unknown Artist"
-                        }
                     }));
-                    externalAlbums.push(...saavnAlbs);
                 }
-            } catch (saavnErr) {
-                console.error("Saavn parsing error (albums):", saavnErr.message);
-            }
+            } catch (e) { console.error('Saavn songs parse error:', e.message); }
         }
 
-        // Deduplicate songs by title/artist to keep search clean
-        const seenSongs = new Set();
-        const mergedMusics = [...musics, ...externalMusics].filter(song => {
-            const key = `${song.title.toLowerCase()}_${(song.artist?.username || '').toLowerCase()}`;
-            if (seenSongs.has(key)) return false;
-            seenSongs.add(key);
-            return true;
-        });
+        // ── JioSaavn albums ──────────────────────────────────────────
+        if (saavnAlbumRes?.ok) {
+            try {
+                const ad = await saavnAlbumRes.json();
+                if (ad.success && ad.data?.results) {
+                    externalAlbums.push(...ad.data.results.map(a => ({
+                        _id: 'saavn_alb_' + a.id,
+                        title: a.name,
+                        coverImage: a.image[a.image.length - 1]?.url || '',
+                        artist: {
+                            _id: 'saavn_art_' + (a.artists?.primary?.[0]?.id || 'unknown'),
+                            username: a.artists?.primary?.[0]?.name || 'Unknown Artist'
+                        }
+                    })));
+                }
+            } catch (e) { console.error('Saavn albums parse error:', e.message); }
+        }
 
-        // Deduplicate albums
-        const seenAlbums = new Set();
-        const mergedAlbums = [...albums, ...externalAlbums].filter(album => {
-            const key = `${album.title.toLowerCase()}_${(album.artist?.username || '').toLowerCase()}`;
-            if (seenAlbums.has(key)) return false;
-            seenAlbums.add(key);
-            return true;
-        });
+        // ─────────────────────────────────────────────────────────────
+        // STEP 3 – Deduplicate
+        //   Rule: same title + same artist from multiple sources = keep only one
+        //         same title + DIFFERENT artist              = KEEP ALL  ✅
+        //   We normalize text before comparing so encoding quirks don't
+        //   falsely merge genuinely different songs.
+        // ─────────────────────────────────────────────────────────────
+        const normalize = (str) =>
+            (str || '')
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')   // strip accents
+                .replace(/[^a-z0-9\s]/g, '')       // strip special chars
+                .replace(/\s+/g, ' ')
+                .trim();
+
+        const dedupe = (list) => {
+            const seen = new Set();
+            return list.filter(item => {
+                const key = `${normalize(item.title)}||${normalize(item.artist?.username)}`;
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            });
+        };
+
+        // ─────────────────────────────────────────────────────────────
+        // STEP 4 – Merge & sort
+        //   Local DB songs first (artist uploaded them intentionally),
+        //   then external. Within each group, sort alphabetically by
+        //   title so all versions of the same song appear together.
+        // ─────────────────────────────────────────────────────────────
+        const allMusics  = dedupe([...musics, ...externalMusics]);
+        const allAlbums  = dedupe([...albums, ...externalAlbums]);
+
+        // Sort: group same-title songs together, then by artist name
+        const sortByTitleArtist = (a, b) => {
+            const ta = normalize(a.title);
+            const tb = normalize(b.title);
+            if (ta < tb) return -1;
+            if (ta > tb) return 1;
+            // Same title → sort by artist so versions are side-by-side
+            const aa = normalize(a.artist?.username);
+            const ab = normalize(b.artist?.username);
+            return aa < ab ? -1 : aa > ab ? 1 : 0;
+        };
+
+        allMusics.sort(sortByTitleArtist);
+        allAlbums.sort(sortByTitleArtist);
 
         res.status(200).json({
             results: {
-                musics: mergedMusics,
-                albums: mergedAlbums,
+                musics:    allMusics,
+                albums:    allAlbums,
                 playlists: playlists
             }
         });
+
     } catch (error) {
-        console.error("Global search error:", error);
-        res.status(500).json({ message: "Internal server error" });
+        console.error('Global search error:', error);
+        res.status(500).json({ message: 'Internal server error' });
     }
 }
 
